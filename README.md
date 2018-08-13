@@ -57,7 +57,7 @@ Here's the same example with _tilakone_:
                                :actions [[:inc-val]]}
                            _  {:state :start}}}})
 
-(def count-ab-fsm
+(def count-ab
   {:states    count-ab-states
    :action-fn (fn [action value & _]
                 (case action
@@ -65,15 +65,13 @@ Here's the same example with _tilakone_:
    :state     :start
    :value     0})
 
-(def count-ab (partial reduce tk/apply-signal count-ab-fsm))
-
 (->> ["abaaabc" "aaacb" "bbbcab"]
-     (map count-ab)
+     (map (partial reduce tk/apply-signal count-ab))
      (map :value))
 ;=> (2 0 1)
 ```
 
-Note that the state transfers data `count-ab-states` is pure data.
+Note that the state transfer definitions in `count-ab-states`are pure data.
 
 Also, there is one extra state transfer defined in _tilakone_ example from
 state `:state`. In _reduce_fsm_ the default (if no transition is found for
