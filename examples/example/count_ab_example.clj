@@ -9,7 +9,7 @@
                                :actions [[:inc-val]]}
                            _  {:state :start}}}})
 
-(def count-ab-fsm
+(def count-ab
   {:states    count-ab-states
    :action-fn (fn [action value & _]
                 (case action
@@ -17,9 +17,7 @@
    :state     :start
    :value     0})
 
-(def count-ab (partial reduce tk/apply-signal count-ab-fsm))
-
 (->> ["abaaabc" "aaacb" "bbbcab"]
-     (map count-ab)
+     (map (partial reduce tk/apply-signal count-ab))
      (map :value))
 ;=> (2 0 1)
