@@ -51,6 +51,9 @@
          (map tk-count-ab)
          (dorun))))
 
+(defn -main [& _]
+  (run-perf-tests))
+
 (comment
   (run-perf-tests)
   )

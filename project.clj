@@ -13,15 +13,14 @@
                                   [reduce-fsm "0.1.4"]]
                    :source-paths ["examples"]}
              :perf {:jvm-opts ^:replace ["-server"
-                                         "-Xms4096m"
-                                         "-Xmx4096m"
+                                         "-Xms2g"
+                                         "-Xmx2g"
                                          "-Dclojure.compiler.direct-linking=true"]}}
   :plugins [[lein-eftest "0.5.2"]]
   :eftest {:multithread? false}
   :test-selectors {:default (constantly true)
                    :all (constantly true)}
   :aliases {"perf" ["with-profile" "default,dev,perf"]
-            "run-perf" ["perf" "run" "-m" "example.perf-testing"]}
+            "perf-test" ["perf" "run" "-m" "example.perf-test"]}
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"})
-
