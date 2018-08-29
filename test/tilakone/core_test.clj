@@ -14,24 +14,31 @@
 ;     \a ->  :found-a
 ;     \b -> {:action inc-val} :start
 ;     _ -> :start]])
-;
-; We can use the generated fsm like any function
-;  (map (partial count-ab 0) ["abaaabc" "aaacb" "bbbcab"])
-; returns => (2 0 1)
+
+(def count-ab-states
+  [{:name        :start
+    :transitions [{:on \a
+                   :to :found-a}
+                  {:on _
+                   :to :start}]}
+   {:name        :found-a
+    :transitions [{:on \a
+                   :to :found-a}
+                  {:on      \b
+                   :to      :start
+                   :actions [:inc-val]}
+                  {:on _
+                   :to :start}]}])
 
 (def count-ab-fsm
-  {:states  {:start   {:transitions {\a {:to :found-a}
-                                     _  {:to :start}}}
-             :found-a {:transitions {\a {:to :found-a}
-                                     \b {:to      :start
-                                         :actions [[:inc-val]]}
-                                     _  {:to :start}}}}
-   :action! (fn [action value & _]
+  {:states  count-ab-states
+   :action! (fn [value signal action]
               (case action
                 :inc-val (inc value)))
    :state   :start
    :value   0})
 
+(tilakone.schema/validate-fsm count-ab-fsm)
 ;;
 ;; Tests:
 ;;

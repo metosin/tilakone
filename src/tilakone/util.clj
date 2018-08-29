@@ -1,54 +1,75 @@
 (ns tilakone.util
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str])
+  (:import (clojure.lang ExceptionInfo)))
 
-(defn message->str [message]
-  (if (string? message)
-    message
-    (->> message
-         (map (fn [s]
-                (if (string? s)
-                  s
-                  (pr-str s))))
-         (str/join " "))))
+(defn find-first [pred? coll]
+  (some (fn [v]
+          (when (pred? v)
+            v))
+        coll))
 
-(defn error! [message data]
-  (throw (ex-info (message->str message)
-                  (merge {:type :tilakone.core/error} data))))
+(defn get-state [fsm state-name]
+  (find-first (comp (partial = state-name) :name)
+              (-> fsm :states)))
 
-(defn simple-transition? [transitions]
-  (and (map? transitions)
-       (contains? transitions :to)))
+(defn default-match? [_ signal on]
+  (= signal on))
 
-(defn missing-transition! [fsm signal]
-  (error! ["missing transition from" (-> fsm :state) "with signal" signal]
-          {:signal signal
-           :fsm    fsm}))
+(defn find-transition [fsm state signal]
+  (let [value  (-> fsm :value)
+        match? (-> fsm :match? (or default-match?))]
+    (find-first (fn [{:keys [on]}]
+                  (or (= on :tilakone.core/_)
+                      (match? value signal on)))
+                (-> state :transitions))))
 
-(defn missing-guarded-transition! [fsm signal]
-  (error! ["missing guarded transition from" (-> fsm :state)
-           "with signal" signal
-           "with value" (-> fsm :value)]
-          {:signal signal
-           :fsm    fsm}))
+(defn try-guard [guard? value signal guard]
+  (try
+    (let [response (guard? value signal guard)]
+      (when-not response
+        {:guard  guard
+         :result response}))
+    (catch ExceptionInfo e
+      {:guard   guard
+       :result  (ex-data e)
+       :message (.getMessage e)})))
 
-(defn guard-matcher [{:keys [value guard?]} signal]
-  (fn [[guard transition]]
-    (when (or (= guard :tilakone.core/_)
-              (apply guard? (first guard) value signal (rest guard)))
-      transition)))
+(defn apply-guards! [transition {:keys [value guard?]} state signal]
+  (let [errors (reduce (fn [errors guard]
+                         (if-let [result (try-guard guard? value signal guard)]
+                           (conj errors result)
+                           errors))
+                       []
+                       (-> transition :guards))]
+    (when (seq errors)
+      (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
+                              (-> state :name)
+                              (-> signal pr-str))
+                      {:type          :tilakone.core/error
+                       :error         :tilakone.core/rejected-by-guard
+                       :state         state
+                       :signal        signal
+                       :transition    transition
+                       :value         value
+                       :guard-results errors})))
+    transition))
 
 (defn get-transition [fsm state signal]
-  (let [transitions (-> state :transitions)
-        transition  (or (get transitions signal)
-                        (get transitions :tilakone.core/_)
-                        (missing-transition! fsm signal))]
-    (if (simple-transition? transition)
-      transition
-      (or (some (guard-matcher fsm signal) (partition 2 transition))
-          (missing-guarded-transition! fsm signal)))))
+  (-> (find-transition fsm state signal)
+      (or (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
+                                  (-> state :name)
+                                  (-> signal pr-str))
+                          {:type   :tilakone.core/error
+                           :error  :tilakone.core/missing-transition
+                           :state  state
+                           :signal signal})))
+      (apply-guards! fsm state signal)))
 
-(defn apply-actions [{:keys [action! value] :as fsm} signal actions]
-  (assoc fsm :value (reduce (fn [value action]
-                              (apply action! (first action) value signal (rest action)))
-                            value
-                            actions)))
+(defn apply-actions [value action! signal actions]
+  (reduce (fn [value action]
+            (action! value signal action))
+          value
+          actions))
+
+(defn apply-fsm-actions [fsm signal actions]
+  (update fsm :value apply-actions (-> fsm :action!) signal actions))

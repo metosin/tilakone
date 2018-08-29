@@ -6,103 +6,124 @@
 ; can't require tilakone.core, that would be circular dependency:
 (def _ :tilakone.core/_)
 
-(deftest message->str-test
+(deftest find-first-test
   (fact
-    (message->str "foo") => "foo")
+    (find-first some? [nil 42 nil]) => 42)
   (fact
-    (message->str ["foo" :bar 42]) => "foo :bar 42"))
+    (find-first some? [nil nil]) => nil))
 
-(deftest error!-test
+(deftest get-state-test
   (fact
-    (error! ["foo" :bar] {:foo :bar})
-    => (throws-ex-info "foo :bar" {:type :tilakone.core/error
-                                   :foo  :bar})))
+    (get-state {:states [{:name :foo}
+                         {:name :bar}
+                         {:name :boz}]}
+               :bar)
+    => {:name :bar}))
 
-(deftest simple-transition?-test
-  (fact
-    (simple-transition? {:to :foo}) => truthy)
-  (fact
-    (simple-transition? [1 2]) => falsey))
+(def fsm {:states [{:name        :foo
+                    :transitions [{:to :a
+                                   :on \a}
+                                  {:to :b
+                                   :on \b}
+                                  {:to :c
+                                   :on _}]}
+                   {:name        :a
+                    :transitions [{:to :a
+                                   :on \a}
+                                  {:to :b
+                                   :on \b}]}]})
 
-(deftest guard-matcher-test
+(deftest find-transition-test
   (fact
-    (-> {:value 1 :guard? =}
-        (guard-matcher 1)
-        (apply [[[1] :v1]]))
-    => :v1)
-
+    (find-transition fsm
+                     (get-state fsm :foo)
+                     \a)
+    => {:to :a})
   (fact
-    (-> {:value 1 :guard? =}
-        (guard-matcher 2)
-        (apply [[[1] :v1]]))
-    => nil)
-
+    (find-transition fsm
+                     (get-state fsm :foo)
+                     \b)
+    => {:to :b})
   (fact
-    (-> {:value 1 :guard? =}
-        (guard-matcher 2)
-        (apply [[_ :v_]]))
-    => :v_))
+    (find-transition fsm
+                     (get-state fsm :foo)
+                     \x)
+    => {:to :c}))
 
-(def test-fsm
-  {:states {:simple  {:transitions {\a {:to :next}}}
-            :default {:transitions {\a {:to :match-a}
-                                    _  {:to :match-_}}}
-            :guarded {:transitions {\a [[1] {:to :ga-1-state}
-                                        [2] {:to :ga-2-state}
-                                        _ {:to :ga-_-state}]}}}
-   :guard? (fn [type value signal] (= type value))})
+(deftest apply-guards!-test
+  (fact
+    (apply-guards! {:guards [1 2 3]}
+                   {:value  1
+                    :guard? (constantly true)}
+                   ::state
+                   ::signal)
+    => truthy)
+  (fact
+    (apply-guards! {:guards [1 2 3]}
+                   {:value  1
+                    :guard? (fn [value signal guard]
+                              (case guard
+                                1 true
+                                2 false
+                                3 (throw (ex-info "fail" {:rejected :reason}))))}
+                   {:name :state-x}
+                   :some-signal)
+    =throws=> (throws-ex-info "transition from state [:state-x] with signal [:some-signal] forbidden by guard(s)"
+                              {:type          :tilakone.core/error
+                               :error         :tilakone.core/rejected-by-guard
+                               :state         {:name :state-x}
+                               :signal        :some-signal
+                               :transition    {:guards [1 2 3]}
+                               :value         1
+                               :guard-results [{:guard  2
+                                                :result false}
+                                               {:guard   3
+                                                :result  {:rejected :reason}
+                                                :message "fail"}]})))
 
 (deftest get-transition-test
-  (fact "simple transition"
-    (get-transition test-fsm
-                    (-> test-fsm :states :simple)
+  (fact
+    (get-transition fsm
+                    (get-state fsm :a)
                     \a)
-    => {:to :next})
-
-  (fact "default signal: a"
-    (get-transition test-fsm
-                    (-> test-fsm :states :default)
-                    \a)
-    => {:to :match-a})
-
-  (fact "default signal: _"
-    (get-transition test-fsm
-                    (-> test-fsm :states :default)
-                    \x)
-    => {:to :match-_})
-
-  (fact "guarded transition: value = 1"
-    (get-transition (-> test-fsm (assoc :value 1))
-                    (-> test-fsm :states :guarded)
-                    \a)
-    => {:to :ga-1-state})
-
-  (fact "guarded transition: value = 2"
-    (get-transition (-> test-fsm (assoc :value 2))
-                    (-> test-fsm :states :guarded)
-                    \a)
-    => {:to :ga-2-state})
-
-  (fact "guarded transition: value = 3"
-    (get-transition (-> test-fsm (assoc :value 3))
-                    (-> test-fsm :states :guarded)
-                    \a)
-    => {:to :ga-_-state}))
+    => {:to :a})
+  (fact
+    (get-transition fsm
+                    (get-state fsm :a)
+                    \b)
+    => {:to :b})
+  (fact
+    (get-transition fsm
+                    (get-state fsm :a)
+                    \c)
+    =throws=> (throws-ex-info "missing transition from state [:a] with signal [\\c]"
+                       {:type   :tilakone.core/error
+                        :error  :tilakone.core/missing-transition
+                        :state  {:name :a}
+                        :signal \c})))
 
 (deftest apply-actions-test
   (let [value  1
-        signal 2
-        value  (+ value signal 2 3 4)
-        value  (* value signal 2)
-        value  (- value signal 4)]
+        signal 2]
     (fact
-      value => 42)
+      (apply-actions value
+                     (fn [value signal action]
+                       (+ value signal action))
+                     signal
+                     [3 4 5])
+      => (-> (+ value signal 3)
+             (+ signal 4)
+             (+ signal 5)))))
+
+(deftest apply-fsm-actions-test
+  (let [value  1
+        signal 2]
     (fact
-      (apply-actions {:value   1
-                      :action! (fn [f v s & args]
-                                 (apply f v s args))}
-                     2
-                     [[+ 2 3 4]
-                      [* 2]
-                      [- 4]])
-      => {:value 42})))
+      (apply-fsm-actions {:action! (fn [value signal action]
+                                     (+ value signal action))
+                          :value   value}
+                         signal
+                         [3 4 5])
+      => {:value (-> (+ value signal 3)
+                     (+ signal 4)
+                     (+ signal 5))})))
