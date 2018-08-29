@@ -4,19 +4,33 @@
             [tilakone.core :refer :all]))
 
 ; Example state machine from https://github.com/cdorrat/reduce-fsm#basic-fsm:
+;
+; (defn inc-val [val & _] (inc val))
+;
+; (fsm/defsm count-ab
+;   [[:start
+;     \a -> :found-a]
+;    [:found-a
+;     \a ->  :found-a
+;     \b -> {:action inc-val} :start
+;     _ -> :start]])
+;
+; We can use the generated fsm like any function
+;  (map (partial count-ab 0) ["abaaabc" "aaacb" "bbbcab"])
+; returns => (2 0 1)
 
 (def count-ab-fsm
-  {:states    {:start   {:transitions {\a {:state :found-a}
-                                       _ {:state :start}}}
-               :found-a {:transitions {\a {:state :found-a}
-                                       \b {:state   :start
-                                           :actions [[:inc-val]]}
-                                       _  {:state :start}}}}
-   :action-fn (fn [action value & _]
-                (case action
-                  :inc-val (inc value)))
-   :state     :start
-   :value     0})
+  {:states  {:start   {:transitions {\a {:to :found-a}
+                                     _  {:to :start}}}
+             :found-a {:transitions {\a {:to :found-a}
+                                     \b {:to      :start
+                                         :actions [[:inc-val]]}
+                                     _  {:to :start}}}}
+   :action! (fn [action value & _]
+              (case action
+                :inc-val (inc value)))
+   :state   :start
+   :value   0})
 
 ;;
 ;; Tests:

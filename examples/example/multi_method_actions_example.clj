@@ -2,16 +2,16 @@
   (:require [tilakone.core :as tk :refer [_]]))
 
 (def count-ab-states
-  {:start   {:transitions {\a {:state   :found-a
+  {:start   {:transitions {\a {:to   :found-a
                                :actions [[:state-change :start :found-a]]}
-                           _  {:state   :start
+                           _  {:to   :start
                                :actions [[:state-change :start :start]]}}}
-   :found-a {:transitions {\a {:state   :found-a
+   :found-a {:transitions {\a {:to   :found-a
                                :actions [[:state-change :found-a :found-a]]}
-                           \b {:state   :start
+                           \b {:to   :start
                                :actions [[:inc-val]
                                          [:state-change :found-a :start]]}
-                           _  {:state   :start
+                           _  {:to   :start
                                :actions [[:inc-val]
                                          [:state-change :found-a :start]]}}}})
 
@@ -41,7 +41,7 @@
 ;  state-change:  :start => :found-a
 ;  inc-val: 1 => 2
 ;  state-change:  :found-a => :start
-;=> {:state :start,
+;=> {:to :start,
 ;    :value 2,
 ;    :states {...
 

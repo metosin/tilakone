@@ -8,12 +8,12 @@
 ;;
 
 (def tk-count-ab-states
-  {:start   {:transitions {\a {:state :found-a}
-                           _  {:state :start}}}
-   :found-a {:transitions {\a {:state :found-a}
-                           \b {:state   :start
+  {:start   {:transitions {\a {:to :found-a}
+                           _  {:to :start}}}
+   :found-a {:transitions {\a {:to :found-a}
+                           \b {:to   :start
                                :actions [[:inc-val]]}
-                           _  {:state :start}}}})
+                           _  {:to :start}}}})
 
 (def tk-count-ab-fsm
   {:states    tk-count-ab-states

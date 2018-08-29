@@ -20,81 +20,89 @@
 
 (deftest simple-transition?-test
   (fact
-    (simple-transition? {:state :foo}) => truthy)
+    (simple-transition? {:to :foo}) => truthy)
   (fact
     (simple-transition? [1 2]) => falsey))
 
 (deftest guard-matcher-test
   (fact
-    (-> {:value 1 :guard-fn =}
-        (guard-matcher)
+    (-> {:value 1 :guard? =}
+        (guard-matcher 1)
         (apply [[[1] :v1]]))
     => :v1)
 
   (fact
-    (-> {:value 2 :guard-fn =}
-        (guard-matcher)
+    (-> {:value 1 :guard? =}
+        (guard-matcher 2)
         (apply [[[1] :v1]]))
     => nil)
 
   (fact
-    (-> {:value 2 :guard-fn =}
-        (guard-matcher)
+    (-> {:value 1 :guard? =}
+        (guard-matcher 2)
         (apply [[_ :v_]]))
     => :v_))
 
-(def get-transition-test-fsm
-  {:states   {:simple  {:transitions {\a {:state :next}}}
-              :default {:transitions {\a {:state :match-a}
-                                      _  {:state :match-_}}}
-              :guarded {:transitions {\a [[[1] {:state :ga-1-state}]
-                                          [[2] {:state :ga-2-state}]
-                                          [_ {:state :ga-_-state}]]}}}
-   :guard-fn =})
+(def test-fsm
+  {:states {:simple  {:transitions {\a {:to :next}}}
+            :default {:transitions {\a {:to :match-a}
+                                    _  {:to :match-_}}}
+            :guarded {:transitions {\a [[1] {:to :ga-1-state}
+                                        [2] {:to :ga-2-state}
+                                        _ {:to :ga-_-state}]}}}
+   :guard? (fn [type value signal] (= type value))})
 
 (deftest get-transition-test
   (fact "simple transition"
-    (get-transition get-transition-test-fsm
-                    (-> get-transition-test-fsm :states :simple)
+    (get-transition test-fsm
+                    (-> test-fsm :states :simple)
                     \a)
-    => {:state :next})
+    => {:to :next})
 
   (fact "default signal: a"
-    (get-transition get-transition-test-fsm
-                    (-> get-transition-test-fsm :states :default)
+    (get-transition test-fsm
+                    (-> test-fsm :states :default)
                     \a)
-    => {:state :match-a})
+    => {:to :match-a})
 
   (fact "default signal: _"
-    (get-transition get-transition-test-fsm
-                    (-> get-transition-test-fsm :states :default)
+    (get-transition test-fsm
+                    (-> test-fsm :states :default)
                     \x)
-    => {:state :match-_})
+    => {:to :match-_})
 
   (fact "guarded transition: value = 1"
-    (get-transition (-> get-transition-test-fsm (assoc :value 1))
-                    (-> get-transition-test-fsm :states :guarded)
+    (get-transition (-> test-fsm (assoc :value 1))
+                    (-> test-fsm :states :guarded)
                     \a)
-    => {:state :ga-1-state})
+    => {:to :ga-1-state})
 
   (fact "guarded transition: value = 2"
-    (get-transition (-> get-transition-test-fsm (assoc :value 2))
-                    (-> get-transition-test-fsm :states :guarded)
+    (get-transition (-> test-fsm (assoc :value 2))
+                    (-> test-fsm :states :guarded)
                     \a)
-    => {:state :ga-2-state})
+    => {:to :ga-2-state})
 
   (fact "guarded transition: value = 3"
-    (get-transition (-> get-transition-test-fsm (assoc :value 3))
-                    (-> get-transition-test-fsm :states :guarded)
+    (get-transition (-> test-fsm (assoc :value 3))
+                    (-> test-fsm :states :guarded)
                     \a)
-    => {:state :ga-_-state}))
+    => {:to :ga-_-state}))
 
 (deftest apply-actions-test
-  (fact
-    (apply-actions {:value 1
-                    :action-fn (fn [f v & args]
-                                 (apply f v args))}
-                   [[+ 2 3 4]
-                    [* 5]
-                    [- 8]])
-    => {:value 42}))
+  (let [value  1
+        signal 2
+        value  (+ value signal 2 3 4)
+        value  (* value signal 2)
+        value  (- value signal 4)]
+    (fact
+      value => 42)
+    (fact
+      (apply-actions {:value   1
+                      :action! (fn [f v s & args]
+                                 (apply f v s args))}
+                     2
+                     [[+ 2 3 4]
+                      [* 2]
+                      [- 4]])
+      => {:value 42})))

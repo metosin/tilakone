@@ -2,6 +2,8 @@
   :description "Minimal finite state machine library"
   :dependencies []
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.9.0"]
+                                  ; Dev workflow:
+                                  [org.clojure/tools.namespace "0.2.11"]
                                   ; Optionals:
                                   [prismatic/schema "1.1.9"]
                                   [ubergraph "0.5.1"]
@@ -11,7 +13,7 @@
                                   ; Perf test:
                                   [criterium "0.4.4"]
                                   [reduce-fsm "0.1.4"]]
-                   :source-paths ["examples"]}
+                   :source-paths ["dev" "examples"]}
              :perf {:jvm-opts ^:replace ["-server"
                                          "-Xms2g"
                                          "-Xmx2g"
