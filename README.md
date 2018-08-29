@@ -15,6 +15,22 @@ Minimalistic finite state machine (FSM) in Clojure.
 
 ## Usage
 
+All bundled:
+
+```clj
+[metosin/tilakone "0.0.0-SNAPSHOT"]
+```
+
+Optionally, the modules can be required separately:
+
+```clj
+[metosin/tilakone.core "0.0.0-SNAPSHOT"]
+[metosin/tilakone.schema "0.0.0-SNAPSHOT"]
+[metosin/tilakone.graph "0.0.0-SNAPSHOT"]
+```
+
+## Intro
+
 The excellent [cdorrat/reduce-fsm](https://github.com/cdorrat/reduce-fsm) library
 has a nice FSM [example](/cdorrat/reduce-fsm#basic-fsm):
 

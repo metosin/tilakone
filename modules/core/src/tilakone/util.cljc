@@ -1,6 +1,4 @@
-(ns tilakone.util
-  (:require [clojure.string :as str])
-  (:import (clojure.lang ExceptionInfo)))
+(ns tilakone.util)
 
 (defn find-first [pred? coll]
   (some (fn [v]
@@ -29,10 +27,10 @@
       (when-not response
         {:guard  guard
          :result response}))
-    (catch ExceptionInfo e
+    (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
       {:guard   guard
        :result  (ex-data e)
-       :message (.getMessage e)})))
+       :message #?(:clj (.getMessage e) :cljs (str e))})))
 
 (defn apply-guards! [transition {:keys [value guard?]} state signal]
   (let [errors (reduce (fn [errors guard]
