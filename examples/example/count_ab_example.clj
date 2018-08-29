@@ -1,21 +1,28 @@
 (ns example.count-ab-example
   (:require [tilakone.core :as tk :refer [_]]))
 
+; State definitions, pure data here:
+
 (def count-ab-states
-  {:start   {:transitions {\a {:to :found-a}
-                           _  {:to :start}}}
-   :found-a {:transitions {\a {:to :found-a}
-                           \b {:to      :start
-                               :actions [[:inc-val]]}
-                           _  {:to :start}}}})
+  [{:name        :start
+    :transitions [{:on \a, :to :found-a}
+                  {:on _, :to :start}]}
+   {:name        :found-a
+    :transitions [{:on \a, :to :found-a}
+                  {:on \b, :to :start, :actions [:inc-val]}
+                  {:on _, :to :start}]}])
+
+; FSM has states, a function to execute actions, and current state and value:
 
 (def count-ab
-  {:states    count-ab-states
-   :action-fn (fn [action value & _]
-                (case action
-                  :inc-val (inc value)))
-   :state     :start
-   :value     0})
+  {:states  count-ab-states
+   :action! (fn [value signal action]
+              (case action
+                :inc-val (inc value)))
+   :state   :start
+   :value   0})
+
+; Lets apply same inputs to our FSM:
 
 (->> ["abaaabc" "aaacb" "bbbcab"]
      (map (partial reduce tk/apply-signal count-ab))

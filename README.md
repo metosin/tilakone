@@ -36,9 +36,9 @@ has a nice FSM [example](/cdorrat/reduce-fsm#basic-fsm):
 ;; returns => (2 0 1)
 ``` 
 
-This is very nice and workd for many cases. For some _reduce-fsm_ library uses 
-macros to define the FSM and actions are functions. This makes the FSM less
-suitable if you need to serialize the FSM.
+This is very nice and works for many cases. The _reduce-fsm_ library uses 
+macros to define the FSM and actions are functions. This makes the _reduce-fsm_ less
+suitable if you need to serialize your FSMs.
 
 _Tilakone_ is a similar FSM library, but it uses pure data to define the FSM states
 (no macros needed) and the action functions can be defined separately.
@@ -49,38 +49,45 @@ Here's the same example with _tilakone_:
 (ns example.count-ab-example
   (:require [tilakone.core :as tk :refer [_]]))
 
+; State definitions, pure data here:
+
 (def count-ab-states
-  {:start   {:transitions {\a {:state :found-a}
-                           _  {:state :start}}}
-   :found-a {:transitions {\a {:state :found-a}
-                           \b {:state   :start
-                               :actions [[:inc-val]]}
-                           _  {:state :start}}}})
+  [{:name        :start
+    :transitions [{:on \a, :to :found-a}
+                  {:on _, :to :start}]}
+   {:name        :found-a
+    :transitions [{:on \a, :to :found-a}
+                  {:on \b, :to :start, :actions [:inc-val]}
+                  {:on _, :to :start}]}])
+
+; FSM has states, a function to execute actions, and current state and value: 
 
 (def count-ab
-  {:states    count-ab-states
-   :action-fn (fn [action value & _]
-                (case action
-                  :inc-val (inc value)))
-   :state     :start
-   :value     0})
+  {:states  count-ab-states
+   :action! (fn [value signal action]
+              (case action
+                :inc-val (inc value)))
+   :state   :start
+   :value   0})
 
+; Lets apply same inputs to our FSM:
+ 
 (->> ["abaaabc" "aaacb" "bbbcab"]
      (map (partial reduce tk/apply-signal count-ab))
      (map :value))
 ;=> (2 0 1)
 ```
 
-Note that the state transfer definitions in `count-ab-states`are pure data.
+Note that the state definitions in `count-ab-states` are pure data.
 
 Also, there is one extra state transfer defined in _tilakone_ example from
-state `:state`. In _reduce_fsm_ the default (if no transition is found for
-signal) is to stay at the current state, but _tilakone_ treats all undeclared 
-state transfers as errors. For this purpose the above example declares an
-explicit rule to allow any unmatched signal (`_`) to be handled by 
-`{:state :start}`.
+state `:start`. In _reduce_fsm_ the default behaviour for signal (that is, if no 
+transition is found for signal) is to stay at the current state, but _tilakone_ 
+treats all undeclared state transfers as errors. For this purpose the above example 
+declares an explicit rule to allow any unmatched signal (`_`) in state `:start` to be 
+handled transition to state `:start`.
 
-The `count-ab-fsm` is the actual FSM. It contains the state declarations,
+The `count-ab` is the actual FSM. It contains the state declarations,
 optional actions function (more of actions later), current state and current
 value. Note that the state and value can be any clojure data value.
 
