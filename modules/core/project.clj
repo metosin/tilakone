@@ -1,26 +1,19 @@
-(defproject metosin/tilakone.root "0.0.0-SNAPSHOT"
+(defproject metosin/tilakone.core "0.0.0-SNAPSHOT"
   :description "Minimal finite state machine library"
   :dependencies []
-  :source-paths ["dev"
-                 "modules/core/src"
-                 "modules/schema/src"
-                 "modules/graph/src"
-                 "examples"]
-  :test-paths ["modules/core/test"
-               "modules/schema/test"
-               "modules/graph/test"]
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.9.0"]
                                   ; Dev workflow:
                                   [org.clojure/tools.namespace "0.2.11"]
-                                  ; Module deps:
+                                  ; Optionals:
                                   [prismatic/schema "1.1.9"]
-                                  [dorothy "0.0.7"]
+                                  [ubergraph "0.5.1"]
                                   ; Test:
                                   [eftest "0.5.2"]
                                   [metosin/testit "0.4.0-SNAPSHOT"]
                                   ; Perf test:
                                   [criterium "0.4.4"]
-                                  [reduce-fsm "0.1.4"]]}
+                                  [reduce-fsm "0.1.4"]]
+                   :source-paths ["dev" "examples"]}
              :perf {:jvm-opts ^:replace ["-server"
                                          "-Xms2g"
                                          "-Xmx2g"

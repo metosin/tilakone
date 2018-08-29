@@ -38,7 +38,6 @@
    :state   :start
    :value   0})
 
-(tilakone.schema/validate-fsm count-ab-fsm)
 ;;
 ;; Tests:
 ;;
