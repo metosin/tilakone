@@ -1,6 +1,6 @@
 (ns tilakone.schema
-  (:require [schema.core :as s :refer [defschema]]
-            [clojure.string :as str])
+  (:require [clojure.string :as str]
+            [schema.core :as s :refer [defschema]])
   (:import (clojure.lang IFn)))
 
 (comment
