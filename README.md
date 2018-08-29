@@ -104,7 +104,7 @@ returns the FSM with possibly updated state and value.
 * reduce-fsm is faster (at least at the moment)
 * reduce-fsm is more feature complete
 * tilakone FSMs are pure data™
-* tilakone code is quite a bit simpler with no macros and less code (reduce-fsm 592 lines, tilakone 115 lines)
+* tilakone code is quite a bit simpler with no macros and less code (reduce-fsm 592 lines, tilakone 105 lines)
 
 ## TODO
 
@@ -112,7 +112,6 @@ returns the FSM with possibly updated state and value.
 * examples on :enter/:leave actions, state guards, etc
 * compare to reduce-fsm
 * add fsm visualization
-* move schema and ubergraph to modules
 * add perf tests
 
 ## License
