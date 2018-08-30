@@ -5,21 +5,21 @@
   "Special symbol to denote that the transition matches any signal"
   ::_)
 
-(defn apply-signal [fsm signal]
-  (let [current-state-name (-> fsm :state)
-        current-state      (-> fsm (u/get-state current-state-name))
-        transition         (-> fsm (u/get-transition current-state signal))
+(defn apply-signal [process signal]
+  (let [current-state-name (-> process :state)
+        current-state      (-> process (u/get-process-state current-state-name))
+        transition         (-> process (u/get-transition current-state signal))
         next-state-name    (-> transition :to (or current-state-name))
-        next-state         (-> fsm (u/get-state next-state-name))]
+        next-state         (-> process (u/get-process-state next-state-name))]
     (if (= next-state-name current-state-name)
-      (-> fsm
-          (u/apply-fsm-actions signal (-> transition :actions))
-          (u/apply-fsm-actions signal (-> current-state :stay)))
-      (-> fsm
-          (u/apply-fsm-actions signal (-> current-state :leave))
+      (-> process
+          (u/apply-process-actions signal (-> transition :actions))
+          (u/apply-process-actions signal (-> current-state :stay)))
+      (-> process
+          (u/apply-process-actions signal (-> current-state :leave))
           (assoc :state next-state-name)
-          (u/apply-fsm-actions signal (-> transition :actions))
-          (u/apply-fsm-actions signal (-> next-state :enter))))))
+          (u/apply-process-actions signal (-> transition :actions))
+          (u/apply-process-actions signal (-> next-state :enter))))))
 
 
 (comment

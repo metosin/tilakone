@@ -14,39 +14,39 @@
 
 (deftest get-state-test
   (fact
-    (get-state {:states [{:name :foo}
-                         {:name :bar}
-                         {:name :boz}]}
-               :bar)
+    (get-process-state {:states [{:name :foo}
+                                 {:name :bar}
+                                 {:name :boz}]}
+                       :bar)
     => {:name :bar}))
 
-(def fsm {:states [{:name        :foo
-                    :transitions [{:to :a
-                                   :on \a}
-                                  {:to :b
-                                   :on \b}
-                                  {:to :c
-                                   :on _}]}
-                   {:name        :a
-                    :transitions [{:to :a
-                                   :on \a}
-                                  {:to :b
-                                   :on \b}]}]})
+(def process {:states [{:name        :foo
+                        :transitions [{:to :a
+                                       :on \a}
+                                      {:to :b
+                                       :on \b}
+                                      {:to :c
+                                       :on _}]}
+                       {:name        :a
+                        :transitions [{:to :a
+                                       :on \a}
+                                      {:to :b
+                                       :on \b}]}]})
 
 (deftest find-transition-test
   (fact
-    (find-transition fsm
-                     (get-state fsm :foo)
+    (find-transition process
+                     (get-process-state process :foo)
                      \a)
     => {:to :a})
   (fact
-    (find-transition fsm
-                     (get-state fsm :foo)
+    (find-transition process
+                     (get-process-state process :foo)
                      \b)
     => {:to :b})
   (fact
-    (find-transition fsm
-                     (get-state fsm :foo)
+    (find-transition process
+                     (get-process-state process :foo)
                      \x)
     => {:to :c}))
 
@@ -83,24 +83,24 @@
 
 (deftest get-transition-test
   (fact
-    (get-transition fsm
-                    (get-state fsm :a)
+    (get-transition process
+                    (get-process-state process :a)
                     \a)
     => {:to :a})
   (fact
-    (get-transition fsm
-                    (get-state fsm :a)
+    (get-transition process
+                    (get-process-state process :a)
                     \b)
     => {:to :b})
   (fact
-    (get-transition fsm
-                    (get-state fsm :a)
+    (get-transition process
+                    (get-process-state process :a)
                     \c)
     =throws=> (throws-ex-info "missing transition from state [:a] with signal [\\c]"
-                       {:type   :tilakone.core/error
-                        :error  :tilakone.core/missing-transition
-                        :state  {:name :a}
-                        :signal \c})))
+                              {:type   :tilakone.core/error
+                               :error  :tilakone.core/missing-transition
+                               :state  {:name :a}
+                               :signal \c})))
 
 (deftest apply-actions-test
   (let [value  1
@@ -119,11 +119,11 @@
   (let [value  1
         signal 2]
     (fact
-      (apply-fsm-actions {:action! (fn [value signal action]
-                                     (+ value signal action))
-                          :value   value}
-                         signal
-                         [3 4 5])
+      (apply-process-actions {:action! (fn [value signal action]
+                                         (+ value signal action))
+                              :value   value}
+                             signal
+                             [3 4 5])
       => {:value (-> (+ value signal 3)
                      (+ signal 4)
                      (+ signal 5))})))

@@ -3,7 +3,7 @@
             [testit.core :refer :all]
             [tilakone.core :refer :all]))
 
-(def count-ab-states
+(def count-ab
   [{:name        :start
     :transitions [{:on      \a
                    :to      :found-a
@@ -25,14 +25,14 @@
     :leave       [[:leave :found-a]]
     :stay        [[:stay :found-a]]}])
 
-(def count-ab {:states  count-ab-states
-               :action! (fn [value signal action]
-                          (swap! value conj (into [signal] action))
-                          value)
-               :state   :start})
+(def count-ab-process {:states  count-ab
+                       :action! (fn [value signal action]
+                                  (swap! value conj (into [signal] action))
+                                  value)
+                       :state   :start})
 
 (deftest actions-test
-  (let [count-ab (assoc count-ab :value (atom []))]
+  (let [count-ab (assoc count-ab-process :value (atom []))]
     (fact
       (-> (reduce apply-signal count-ab "xxababbax")
           :value

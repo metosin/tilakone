@@ -4,7 +4,7 @@
 
 ; Serializable state description:
 
-(def count-ab-states
+(def count-ab
   [{:name        :start
     :transitions [{:on \a, :to :found-a}
                   {:on _}]}
@@ -13,31 +13,31 @@
                   {:on \b, :to :start, :actions [:inc-val]}
                   {:on _, :to :start}]}])
 
-(tks/validate-states count-ab-states)
+(tks/validate-states count-ab)
 ;=> [:name :start, ...
 
 ; Non-serializable state:
 
-(def count-ab
-  {:states  count-ab-states
+(def count-ab-process
+  {:states  count-ab
    :action! (fn [value signal action]
               (case action
                 :inc-val (inc value)))
    :state   :start
    :value   0})
 
-(tks/validate-fsm count-ab)
+(tks/validate-process count-ab-process)
 ;=> {:states ...
 
 ; Try to send some signals:
 
-(-> count-ab
+(-> count-ab-process
     (tk/apply-signal \a))
 ;=> {:state :found-a
 ;    :value 0
 ;    ...
 
-(-> count-ab
+(-> count-ab-process
     (tk/apply-signal \a)
     (tk/apply-signal \b))
 ;=> {:state :start
@@ -45,7 +45,7 @@
 ;    ...
 
 (reduce tk/apply-signal
-        count-ab
+        count-ab-process
         "abaaabc")
 ;=> {:state :start
 ;    :value 2

@@ -5,7 +5,7 @@
 
 (comment
 
-  ; Mental map for FMS schema:
+  ; Mental map for process schema:
 
   {:states  [{:name        Any ; State name (can be string, keyword, symbol, any clojure value)
               :desc        Str ; State description
@@ -48,13 +48,13 @@
                   (s/optional-key :leave) [Action]
                   s/Keyword               s/Any})
 
-(defschema FSM {:states                   [State]
-                :state                    StateName
-                :value                    s/Any
-                (s/optional-key :match?)  IFn
-                (s/optional-key :guard?)  IFn
-                (s/optional-key :action!) IFn
-                s/Keyword                 s/Any})
+(defschema FsmProcess {:states                   [State]
+                       :state                    StateName
+                       :value                    s/Any
+                       (s/optional-key :match?)  IFn
+                       (s/optional-key :guard?)  IFn
+                       (s/optional-key :action!) IFn
+                       s/Keyword                 s/Any})
 
 (defn validate-states [states]
   (let [known-state? (->> states
@@ -63,7 +63,9 @@
         errors       (mapcat (fn [state]
                                (->> state
                                     :transitions
-                                    (remove (comp known-state? :to))
+                                    (remove (fn [{:keys [to]}]
+                                              (or (nil? to)
+                                                  (known-state? to))))
                                     (map (fn [transition]
                                            {:state      state
                                             :transition transition
@@ -80,14 +82,14 @@
                        :errors errors}))))
   states)
 
-(def fsm-checker (s/checker FSM))
+(def process-checker (s/checker FsmProcess))
 
-(defn validate-fsm [fsm]
-  (when-let [schema-errors (fsm-checker fsm)]
-    (throw (ex-info "FSM does not match schema"
+(defn validate-process [process]
+  (when-let [schema-errors (process-checker process)]
+    (throw (ex-info "Process does not match schema"
                     {:type          :tilakone.core/error
                      :error         :tilakone.core/schema-error
                      :schema-errors schema-errors
-                     :fsm           fsm})))
-  (validate-states (:states fsm))
-  fsm)
+                     :fsm           process})))
+  (validate-states (:states process))
+  process)

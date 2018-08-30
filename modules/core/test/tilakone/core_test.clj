@@ -15,7 +15,7 @@
 ;     \b -> {:action inc-val} :start
 ;     _ -> :start]])
 
-(def count-ab-states
+(def count-ab
   [{:name        :start
     :transitions [{:on \a
                    :to :found-a}
@@ -30,8 +30,8 @@
                   {:on _
                    :to :start}]}])
 
-(def count-ab-fsm
-  {:states  count-ab-states
+(def count-ab-process
+  {:states  count-ab
    :action! (fn [value signal action]
               (case action
                 :inc-val (inc value)))
@@ -44,20 +44,20 @@
 
 (deftest apply-signal-test
   (fact
-    (-> count-ab-fsm
+    (-> count-ab-process
         (apply-signal \a))
     => {:state :found-a
         :value 0})
 
   (fact
-    (-> count-ab-fsm
+    (-> count-ab-process
         (apply-signal \a)
         (apply-signal \a))
     => {:state :found-a
         :value 0})
 
   (fact
-    (-> count-ab-fsm
+    (-> count-ab-process
         (apply-signal \a)
         (apply-signal \a)
         (apply-signal \b))
@@ -66,7 +66,7 @@
 
   (fact
     (reduce apply-signal
-            count-ab-fsm
+            count-ab-process
             "abaaabc")
     => {:value 2}))
 
@@ -78,7 +78,7 @@
 
   (fact
     (->> ["abaaabc" "aaacb" "bbbcab"]
-         (map (partial reduce apply-signal count-ab-fsm))
+         (map (partial reduce apply-signal count-ab-process))
          (map :value))
     => [2 0 1])
   )
