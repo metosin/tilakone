@@ -6,9 +6,9 @@
 (def count-ab-states
   [{:name        :start
     :transitions [{:on \a, :to :found-a}
-                  {:on _, :to :start}]}
+                  {:on _}]}
    {:name        :found-a
-    :transitions [{:on \a, :to :found-a}
+    :transitions [{:on \a}
                   {:on \b, :to :start, :actions [:inc-val]}
                   {:on _, :to :start}]}])
 

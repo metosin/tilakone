@@ -34,7 +34,7 @@
 
 (defschema Transition {(s/optional-key :name)    TransitionName
                        (s/optional-key :desc)    s/Str
-                       :to                       StateName
+                       (s/optional-key :to)      StateName
                        :on                       Matcher
                        (s/optional-key :guards)  [Guard]
                        (s/optional-key :actions) [Action]
@@ -53,7 +53,8 @@
                 :value                    s/Any
                 (s/optional-key :match?)  IFn
                 (s/optional-key :guard?)  IFn
-                (s/optional-key :action!) IFn})
+                (s/optional-key :action!) IFn
+                s/Keyword                 s/Any})
 
 (defn validate-states [states]
   (let [known-state? (->> states
@@ -75,8 +76,8 @@
       (throw (ex-info (str "unknown target states: " (->> errors
                                                           (map :message)
                                                           (str/join ", ")))
-                      {:type    :tilakone.core/error
-                       :errors  errors}))))
+                      {:type   :tilakone.core/error
+                       :errors errors}))))
   states)
 
 (def fsm-checker (s/checker FSM))
@@ -84,9 +85,9 @@
 (defn validate-fsm [fsm]
   (when-let [schema-errors (fsm-checker fsm)]
     (throw (ex-info "FSM does not match schema"
-                    {:type :tilakone.core/error
-                     :error :tilakone.core/schema-error
+                    {:type          :tilakone.core/error
+                     :error         :tilakone.core/schema-error
                      :schema-errors schema-errors
-                     :fsm fsm})))
+                     :fsm           fsm})))
   (validate-states (:states fsm))
   fsm)
