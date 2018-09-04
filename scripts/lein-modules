@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+for ext in core schema uber; do
+  ( cd ./modules/$ext; lein "$@"; )
+done
