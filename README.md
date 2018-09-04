@@ -18,14 +18,14 @@ Minimalistic finite state machine (FSM) in Clojure.
 All bundled:
 
 ```clj
-[metosin/tilakone "0.0.0-SNAPSHOT"]
+[metosin/tilakone "0.0.1"]
 ```
 
 Optionally, the modules can be required separately:
 
 ```clj
-[metosin/tilakone.core "0.0.0-SNAPSHOT"]
-[metosin/tilakone.schema "0.0.0-SNAPSHOT"]
+[metosin/tilakone.core "0.0.1"]
+[metosin/tilakone.schema "0.0.1"]
 ```
 
 ## Intro
