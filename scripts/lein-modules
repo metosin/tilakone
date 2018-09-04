@@ -2,6 +2,6 @@
 
 set -e
 
-for ext in core schema graph uber; do
+for ext in core schema uber; do
   ( cd ./modules/$ext; lein "$@"; )
 done
