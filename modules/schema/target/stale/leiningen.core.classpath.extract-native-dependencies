@@ -1,1 +1,0 @@
-[{:dependencies {metosin/tilakone.core {:vsn "0.0.0-SNAPSHOT", :native-prefix nil}, prismatic/schema {:vsn "1.1.9", :native-prefix nil}}, :native-path "target/native"} {:native-path "target/native", :dependencies {metosin/tilakone.core {:vsn "0.0.0-SNAPSHOT", :native-prefix nil, :native? false}, prismatic/schema {:vsn "1.1.9", :native-prefix nil, :native? false}}}]
