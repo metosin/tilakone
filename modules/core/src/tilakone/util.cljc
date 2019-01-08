@@ -40,9 +40,7 @@
                        []
                        (-> transition :guards))]
     (when (seq errors)
-      (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
-                              (-> state :name)
-                              (-> signal pr-str))
+      (throw (ex-info (str "transition from state [" (-> state :name) "] with signal [" (-> signal pr-str) "] forbidden by guard(s)")
                       {:type          :tilakone.core/error
                        :error         :tilakone.core/rejected-by-guard
                        :state         state
@@ -54,9 +52,7 @@
 
 (defn get-transition [process state signal]
   (-> (find-transition process state signal)
-      (or (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
-                                  (-> state :name)
-                                  (-> signal pr-str))
+      (or (throw (ex-info (str "missing transition from state [" (-> state :name) "] with signal [" (-> signal pr-str) "]")
                           {:type   :tilakone.core/error
                            :error  :tilakone.core/missing-transition
                            :state  state
