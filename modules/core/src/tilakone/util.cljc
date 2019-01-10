@@ -31,7 +31,7 @@
     (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
       {:guard   guard
        :result  (ex-data e)
-       :message #?(:clj (.getMessage e) :cljs (str e))})))
+       :message (ex-message e)})))
 
 (defn apply-guards! [transition {:keys [value guard?]} state signal]
   (let [errors (reduce (fn [errors guard]
