@@ -1,4 +1,5 @@
-(ns tilakone.util)
+(ns tilakone.util
+  "Tilakone implementation, consider this as private api that can change any time.")
 
 (defn find-first [pred? coll]
   (some (fn [v]

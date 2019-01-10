@@ -5,7 +5,10 @@
   "Special symbol to denote that the transition matches any signal"
   ::_)
 
-(defn apply-signal [process signal]
+(defn apply-signal
+  "Apply signal to process, return process with (possibly) updated `:state`
+  and `:value`."
+  [process signal]
   (let [current-state-name (-> process :state)
         current-state      (-> process (u/get-process-state current-state-name))
         transition         (-> process (u/get-transition current-state signal))
@@ -34,7 +37,7 @@
                 :transitions [{:name    Any ; Transition name
                                :desc    Str ; Transition description
                                :to      Any ; Name of the next state
-                               :on      Matcher ; Data for match?, does the sfignal match this transition?
+                               :on      Matcher ; Data for match?, does the signal match this transition?
                                :guards  [Guard] ; Data for guard?, is this transition allowed?
                                :actions [Action]}] ; Actions to be performed on this transition
                 :enter       [Action] ; Actions to be performed when entering this state
