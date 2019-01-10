@@ -1,7 +1,7 @@
 (ns tilakone.core-test
   (:require [clojure.test :refer :all]
             [testit.core :refer :all]
-            [tilakone.core :refer :all]))
+            [tilakone.core :as tk]))
 
 ; Example state machine from https://github.com/cdorrat/reduce-fsm#basic-fsm:
 ;
@@ -45,27 +45,27 @@
 (deftest apply-signal-test
   (fact
     (-> count-ab-process
-        (apply-signal \a))
+        (tk/apply-signal \a))
     => {:state :found-a
         :value 0})
 
   (fact
     (-> count-ab-process
-        (apply-signal \a)
-        (apply-signal \a))
+        (tk/apply-signal \a)
+        (tk/apply-signal \a))
     => {:state :found-a
         :value 0})
 
   (fact
     (-> count-ab-process
-        (apply-signal \a)
-        (apply-signal \a)
-        (apply-signal \b))
+        (tk/apply-signal \a)
+        (tk/apply-signal \a)
+        (tk/apply-signal \b))
     => {:state :start
         :value 1})
 
   (fact
-    (reduce apply-signal
+    (reduce tk/apply-signal
             count-ab-process
             "abaaabc")
     => {:value 2}))
@@ -78,7 +78,7 @@
 
   (fact
     (->> ["abaaabc" "aaacb" "bbbcab"]
-         (map (partial reduce apply-signal count-ab-process))
+         (map (partial reduce tk/apply-signal count-ab-process))
          (map :value))
     => [2 0 1])
   )
