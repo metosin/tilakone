@@ -1,6 +1,7 @@
 (ns user
   (:require [clojure.tools.namespace.repl :as repl]
-            [eftest.runner :as eftest]))
+            [eftest.runner :as eftest]
+            [eftest.report.pretty :as pretty]))
 
 (def reset repl/refresh)
 (def start (constantly :ok))
@@ -15,9 +16,11 @@
     (->> (mapcat eftest.runner/find-tests test-dirs)
          (remove (comp :integration meta))
          (remove (comp :slow meta)))
-    {:multithread? true}))
+    {:multithread? true
+     :report       pretty/report}))
 
 (defn run-all-tests []
   (eftest/run-tests
     (mapcat eftest.runner/find-tests test-dirs)
-    {:multithread? false}))
+    {:multithread? false
+     :report       pretty/report}))
