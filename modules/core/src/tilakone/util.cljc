@@ -11,6 +11,9 @@
   (find-first (comp (partial = state-name) :name)
               (-> process :states)))
 
+(defn get-current-state [process]
+  (get-process-state process (-> process :state)))
+
 (defn default-match? [_ signal on]
   (= signal on))
 

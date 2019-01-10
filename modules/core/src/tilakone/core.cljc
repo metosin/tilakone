@@ -24,6 +24,15 @@
           (u/apply-process-actions signal (-> transition :actions))
           (u/apply-process-actions signal (-> next-state :enter))))))
 
+(defn allowed?
+  "Returns truthy if signal is allowed, falsey otherwise."
+  [process signal]
+  (let [pass?      (-> u/try-guard
+                       (partial (-> process :guard?) (-> process :value) signal)
+                       (complement))
+        transition (u/find-transition process (u/get-current-state process) signal)]
+    (and transition
+         (->> transition :guards (every? pass?)))))
 
 (comment
 

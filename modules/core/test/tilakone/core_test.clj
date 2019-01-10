@@ -82,3 +82,46 @@
          (map :value))
     => [2 0 1])
   )
+
+(deftest allowed?-test
+
+  (let [process {:states  [{:name        :init
+                            :transitions [{:on      :inc
+                                           :guards  [[:max-val 2]]
+                                           :actions [[:inc-val 1]]}]}]
+                 :state   :init
+                 :value   0
+                 :guard?  (fn [value signal [guard-id guard-arg]]
+                            (case guard-id
+                              :max-val (<= value guard-arg)))
+                 :action! (fn [value signal [action-id action-arg]]
+                            (case action-id
+                              :inc-val (+ value action-arg)))}]
+    (fact
+      (tk/allowed? process :foo) => falsey)
+
+    (fact
+      (-> process
+          (tk/allowed? :inc))
+      => truthy)
+
+    (fact
+      (-> process
+          (tk/apply-signal :inc)
+          (tk/allowed? :inc))
+      => truthy)
+
+    (fact
+      (-> process
+          (tk/apply-signal :inc)
+          (tk/apply-signal :inc)
+          (tk/allowed? :inc))
+      => truthy)
+
+    (fact
+      (-> process
+          (tk/apply-signal :inc)
+          (tk/apply-signal :inc)
+          (tk/apply-signal :inc)
+          (tk/allowed? :inc))
+      => falsey)))
