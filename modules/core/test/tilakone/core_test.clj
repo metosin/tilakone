@@ -83,18 +83,56 @@
     => [2 0 1])
   )
 
-(deftest allowed?-test
 
+(deftest guard-test
+  (testing "guards are called"
+    (let [process  {:states [{:name        :init
+                              :transitions [{:on     :next
+                                             :to     :next
+                                             :guards [:guard-1 :guard-2]}]}
+                             {:name :next}]
+                    :state  :init
+                    :value  (atom [])
+                    :guard? (fn [value _ guard]
+                              (swap! value conj guard)
+                              true)}
+          process' (tk/apply-signal process :next)]
+      (fact
+        (-> process' :value deref) => [:guard-1 :guard-2])))
+
+  (testing "guard can prevent transition"
+    (let [process {:states [{:name        :init
+                             :transitions [{:on     :next
+                                            :to     :next
+                                            :guards [:ok :fail-1 :fail-2]}]}
+                            {:name :next}]
+                   :state  :init
+                   :value  nil
+                   :guard? (fn [_ _ guard]
+                             (= guard :ok))}]
+      (fact
+        (tk/apply-signal process :next)
+        =throws=> (throws-ex-info any {:type          :tilakone.core/error
+                                       :error         :tilakone.core/rejected-by-guard
+                                       :state         {:name :init}
+                                       :signal        :next
+                                       :transition    map?
+                                       :value         nil
+                                       :guard-results [{:guard :fail-1, :result false}
+                                                       {:guard :fail-2, :result false}]})))))
+
+
+(deftest allowed?-test
   (let [process {:states  [{:name        :init
                             :transitions [{:on      :inc
                                            :guards  [[:max-val 2]]
                                            :actions [[:inc-val 1]]}]}]
                  :state   :init
                  :value   0
-                 :guard?  (fn [value signal [guard-id guard-arg]]
+                 :guard?  (fn [value _ [guard-id guard-arg]]
                             (case guard-id
                               :max-val (<= value guard-arg)))
-                 :action! (fn [value signal [action-id action-arg]]
+                 :action! (fn [value _ [action-id action-arg]]
                             (case action-id
                               :inc-val (+ value action-arg)))}]
     (fact
@@ -125,3 +163,20 @@
           (tk/apply-signal :inc)
           (tk/allowed? :inc))
       => falsey)))
+
+
+(deftest match?-test
+  (let [process {:states [{:name        :init
+                           :transitions [{:on [:next "hello"]
+                                          :to :next}]}
+                          {:name :next}]
+                 :state  :init
+                 :match? (fn [_ signal on]
+                           (= (first signal) (first on)))}]
+    (fact
+      (tk/allowed? process [:next "world"]) => truthy)
+    (fact
+      (-> process
+          (tk/apply-signal [:next "!"])
+          :state)
+      => :next)))
