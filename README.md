@@ -128,6 +128,7 @@ returns the FSM with possibly updated state and value.
 * compare to reduce-fsm
 * add fsm visualization
 * add perf tests
+* state level `:enter` and `:leave` should allow settings both action and guards
 
 ## License
 
