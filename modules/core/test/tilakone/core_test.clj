@@ -1,182 +1,122 @@
 (ns tilakone.core-test
   (:require [clojure.test :refer :all]
             [testit.core :refer :all]
-            [tilakone.core :as tk]))
+            [tilakone.core :as tk :refer [_]]))
 
-; Example state machine from https://github.com/cdorrat/reduce-fsm#basic-fsm:
-;
-; (defn inc-val [val & _] (inc val))
-;
-; (fsm/defsm count-ab
-;   [[:start
-;     \a -> :found-a]
-;    [:found-a
-;     \a ->  :found-a
-;     \b -> {:action inc-val} :start
-;     _ -> :start]])
 
-(def count-ab
-  [{:name        :start
-    :transitions [{:on \a
-                   :to :found-a}
-                  {:on _
-                   :to :start}]}
-   {:name        :found-a
-    :transitions [{:on \a
-                   :to :found-a}
-                  {:on      \b
-                   :to      :start
-                   :actions [:inc-val]}
-                  {:on _
-                   :to :start}]}])
+(def states [{:name        :a
+              :enter       {:guards [:->a], :actions [:->a]}
+              :stay        {:guards [:a], :actions [:a]}
+              :leave       {:guards [:a->], :actions [:a->]}
+              :transitions [{:on \a, :to :a, :guards [:a->a], :actions [:a->a]}
+                            {:on \b, :to :b, :guards [:a->b], :actions [:a->b]}
+                            {:on _,, :to :c, :guards [:a->c], :actions [:a->c]}]}
 
-(def count-ab-process
-  {:states  count-ab
-   :action! (fn [value signal action]
-              (case action
-                :inc-val (inc value)))
-   :state   :start
-   :value   0})
+             {:name        :b
+              :enter       {:guards [:->b], :actions [:->b]}
+              :stay        {:guards [:b], :actions [:b]}
+              :leave       {:guards [:b->], :actions [:b->]}
+              :transitions [{:on \a, :to :a, :guards [:b->a], :actions [:b->a]}
+                            {:on \b, :to :b, :guards [:b->b], :actions [:b->b]}]}
 
-;;
-;; Tests:
-;;
+             {:name  :c
+              :enter {:guards [:->c], :actions [:->c]}}])
+
+
 
 (deftest apply-signal-test
-  (fact
-    (-> count-ab-process
-        (tk/apply-signal \a))
-    => {:state :found-a
-        :value 0})
-
-  (fact
-    (-> count-ab-process
-        (tk/apply-signal \a)
-        (tk/apply-signal \a))
-    => {:state :found-a
-        :value 0})
-
-  (fact
-    (-> count-ab-process
-        (tk/apply-signal \a)
-        (tk/apply-signal \a)
-        (tk/apply-signal \b))
-    => {:state :start
-        :value 1})
-
-  (fact
-    (reduce tk/apply-signal
-            count-ab-process
-            "abaaabc")
-    => {:value 2}))
-
-(deftest apply-signal-example-test
-
-  ; Sample input from reduce-fsm:
-  ;   (map (partial count-ab 0) ["abaaabc" "aaacb" "bbbcab"])
-  ;   => (2 0 1)
-
-  (fact
-    (->> ["abaaabc" "aaacb" "bbbcab"]
-         (map (partial reduce tk/apply-signal count-ab-process))
-         (map :value))
-    => [2 0 1])
-  )
-
-
-(deftest guard-test
-  (testing "guards are called"
-    (let [process  {:states [{:name        :init
-                              :transitions [{:on     :next
-                                             :to     :next
-                                             :guards [:guard-1 :guard-2]}]}
-                             {:name :next}]
-                    :state  :init
-                    :value  (atom [])
-                    :guard? (fn [value _ guard]
-                              (swap! value conj guard)
-                              true)}
-          process' (tk/apply-signal process :next)]
-      (fact
-        (-> process' :value deref) => [:guard-1 :guard-2])))
-
-  (testing "guard can prevent transition"
-    (let [process {:states [{:name        :init
-                             :transitions [{:on     :next
-                                            :to     :next
-                                            :guards [:ok :fail-1 :fail-2]}]}
-                            {:name :next}]
-                   :state  :init
-                   :value  nil
-                   :guard? (fn [_ _ guard]
-                             (= guard :ok))}]
-      (fact
-        (tk/apply-signal process :next)
-        =throws=> (throws-ex-info any {:type          :tilakone.core/error
-                                       :error         :tilakone.core/rejected-by-guard
-                                       :state         {:name :init}
-                                       :signal        :next
-                                       :transition    map?
-                                       :value         nil
-                                       :guard-results [{:guard :fail-1, :result false}
-                                                       {:guard :fail-2, :result false}]})))))
-
-
-(deftest allowed?-test
-  (let [process {:states  [{:name        :init
-                            :transitions [{:on      :inc
-                                           :guards  [[:max-val 2]]
-                                           :actions [[:inc-val 1]]}]}]
-                 :state   :init
-                 :value   0
-                 :guard?  (fn [value _ [guard-id guard-arg]]
-                            (case guard-id
-                              :max-val (<= value guard-arg)))
-                 :action! (fn [value _ [action-id action-arg]]
-                            (case action-id
-                              :inc-val (+ value action-arg)))}]
+  (let [process {:states  states
+                 :state   :a
+                 :guard?  (constantly true)
+                 :action! (fn [{:keys [action] :as ctx}]
+                            (conj (-> ctx :process :value) action))
+                 :value   []}]
     (fact
-      (tk/allowed? process :foo) => falsey)
+      (tk/apply-signal process \a)
+      => {:state :a
+          :value [:a->a :a]})
 
     (fact
-      (-> process
-          (tk/allowed? :inc))
-      => truthy)
+      (tk/apply-signal process \b)
+      => {:state :b
+          :value [:a-> :a->b :->b]})
 
     (fact
-      (-> process
-          (tk/apply-signal :inc)
-          (tk/allowed? :inc))
-      => truthy)
+      (tk/apply-signal process \x)
+      => {:state :c
+          :value [:a-> :a->c :->c]}))
+
+  (let [process {:states  states
+                 :state   :b
+                 :guard?  (constantly true)
+                 :action! (fn [{:keys [action] :as ctx}]
+                            (conj (-> ctx :process :value) action))
+                 :value   []}]
+    (fact
+      (tk/apply-signal process \a)
+      => {:state :a
+          :value [:b-> :b->a :->a]})
 
     (fact
-      (-> process
-          (tk/apply-signal :inc)
-          (tk/apply-signal :inc)
-          (tk/allowed? :inc))
-      => truthy)
+      (tk/apply-signal process \b)
+      => {:state :b
+          :value [:b->b :b]})
 
     (fact
-      (-> process
-          (tk/apply-signal :inc)
-          (tk/apply-signal :inc)
-          (tk/apply-signal :inc)
-          (tk/allowed? :inc))
-      => falsey)))
+      (tk/apply-signal process \x)
+      =throws=> (throws-ex-info "missing transition from state [:b] with signal [\\x]"))))
 
 
-(deftest match?-test
-  (let [process {:states [{:name        :init
-                           :transitions [{:on [:next "hello"]
-                                          :to :next}]}
-                          {:name :next}]
-                 :state  :init
-                 :match? (fn [_ signal on]
-                           (= (first signal) (first on)))}]
-    (fact
-      (tk/allowed? process [:next "world"]) => truthy)
-    (fact
-      (-> process
-          (tk/apply-signal [:next "!"])
-          :state)
-      => :next)))
+(deftest apply-guards-test
+  (let [process    {:states states
+                    :state  :a}
+        with-allow (fn [allow]
+                     (assoc process :guard? (fn [ctx] (-> ctx :guard allow some?))))]
+    (fact "don't allow anything, report all transitions with all guards returning `false`"
+      (tk/apply-guards (with-allow #{}) \a)
+      => [[{:to :a} [{:guard :a->a, :result false}
+                     {:guard :a, :result false}]]
+          [{:to :c} [{:guard :a->, :result false}
+                     {:guard :a->c, :result false}
+                     {:guard :->c, :result false}]]])
+
+    (fact "allow :a->a"
+      (tk/apply-guards (with-allow #{:a->a}) \a)
+      => [[{:to :a} [{:guard :a, :result false}]]
+          [{:to :c} [{:guard :a->, :result false}
+                     {:guard :a->c, :result false}
+                     {:guard :->c, :result false}]]])
+
+    (fact "allow :a->a and :a"
+      (tk/apply-guards (with-allow #{:a->a :a}) \a)
+      => [[{:to :a} nil]
+          [{:to :c} [{:guard :a->, :result false}
+                     {:guard :a->c, :result false}
+                     {:guard :->c, :result false}]]])
+
+    (fact "allow :a->a, :a, :a->, :a->c and :->c"
+      (tk/apply-guards (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
+      => [[{:to :a} nil]
+          [{:to :c} nil]])))
+
+
+(deftest transfers-to-test
+  (let [process    {:states states
+                    :state  :a}
+        with-allow (fn [allow]
+                     (assoc process :guard? (fn [ctx] (-> ctx :guard allow some?))))]
+    (fact "don't allow anything, can't transfer anywhere"
+      (tk/transfers-to (with-allow #{}) \a)
+      => nil)
+
+    (fact "allow :a->a and :a"
+      (tk/transfers-to (with-allow #{:a->a :a}) \a)
+      => :a)
+
+    (fact "allow :a->, :a->c and :->c"
+      (tk/transfers-to (with-allow #{:a-> :a->c :->c}) \a)
+      => :c)
+
+    (fact "allow :a->a, :a, :a->, :a->c and :->c"
+      (tk/transfers-to (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
+      => :a)))

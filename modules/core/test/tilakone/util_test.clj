@@ -1,10 +1,20 @@
 (ns tilakone.util-test
   (:require [clojure.test :refer :all]
             [testit.core :refer :all]
-            [tilakone.util :refer :all]))
+            [tilakone.util :as u]))
+
 
 ; can't require tilakone.core, that would be circular dependency:
 (def _ :tilakone.core/_)
+
+
+;;
+;; Generic utils:
+;;
+
+
+(def find-first #'u/find-first)
+
 
 (deftest find-first-test
   (fact
@@ -12,118 +22,141 @@
   (fact
     (find-first some? [nil nil]) => nil))
 
+
+;;
+;; State:
+;;
+
+
 (deftest get-state-test
   (fact
-    (get-process-state {:states [{:name :foo}
-                                 {:name :bar}
-                                 {:name :boz}]}
-                       :bar)
+    (u/get-process-state {:states [{:name :foo}
+                                   {:name :bar}
+                                   {:name :boz}]}
+                         :bar)
     => {:name :bar}))
 
-(def process {:states [{:name        :foo
-                        :transitions [{:to :a
-                                       :on \a}
-                                      {:to :b
-                                       :on \b}
-                                      {:to :c
-                                       :on _}]}
-                       {:name        :a
-                        :transitions [{:to :a
-                                       :on \a}
-                                      {:to :b
-                                       :on \b}]}]})
 
-(deftest find-transition-test
+(deftest get-state-test
   (fact
-    (find-transition process
-                     (get-process-state process :foo)
-                     \a)
-    => {:to :a})
-  (fact
-    (find-transition process
-                     (get-process-state process :foo)
-                     \b)
-    => {:to :b})
-  (fact
-    (find-transition process
-                     (get-process-state process :foo)
-                     \x)
-    => {:to :c}))
+    (u/get-process-current-state {:states [{:name :foo}
+                                           {:name :bar}
+                                           {:name :boz}]
+                                  :state  :bar})
+    => {:name :bar}))
+
+
+;;
+;; Test process:
+;;
+
+
+(def states [{:name        :a
+              :enter       {:guards [:->a], :actions [:->a]}
+              :stay        {:guards [:a], :actions [:a]}
+              :leave       {:guards [:a->], :actions [:a->]}
+              :transitions [{:on \a, :to :a, :guards [:a->a], :actions [:a->a]}
+                            {:on \b, :to :b, :guards [:a->b], :actions [:a->b]}
+                            {:on _,, :to :c, :guards [:a->c], :actions [:a->c]}]}
+             {:name        :b
+              :enter       {:guards [:->b], :actions [:->b]}
+              :stay        {:guards [:b], :actions [:b]}
+              :leave       {:guards [:b->], :actions [:b->]}
+              :transitions [{:on \a, :to :a, :guards [:b->a], :actions [:b->a]}
+                            {:on \b, :to :b, :guards [:b->b], :actions [:b->b]}]}
+             {:name  :c
+              :enter {:guards [:->c], :actions [:->c]}}])
+
+
+;;
+;; Guards:
+;;
+
 
 (deftest apply-guards!-test
-  (fact
-    (apply-guards! {:guards [1 2 3]}
-                   {:value  1
-                    :guard? (constantly true)}
-                   ::state
-                   ::signal)
-    => truthy)
-  (fact
-    (apply-guards! {:guards [1 2 3]}
-                   {:value  1
-                    :guard? (fn [value signal guard]
-                              (case guard
-                                1 true
-                                2 false
-                                3 (throw (ex-info "fail" {:rejected :reason}))))}
-                   {:name :state-x}
-                   :some-signal)
-    =throws=> (throws-ex-info "transition from state [:state-x] with signal [:some-signal] forbidden by guard(s)"
-                              {:type          :tilakone.core/error
-                               :error         :tilakone.core/rejected-by-guard
-                               :state         {:name :state-x}
-                               :signal        :some-signal
-                               :transition    {:guards [1 2 3]}
-                               :value         1
-                               :guard-results [{:guard  2
-                                                :result false}
-                                               {:guard   3
-                                                :result  {:rejected :reason}
-                                                :message "fail"}]})))
+  (let [visits (atom [])
+        ctx    {:process {:states states
+                          :state  :a
+                          :guard? (fn [ctx]
+                                    (swap! visits conj (-> ctx :guard))
+                                    false)}}]
+
+    (fact "stay in :a"
+      (u/apply-guards ctx {:to :a, :guards [:a->a]})
+      => [{:guard :a->a, :result false}
+          {:guard :a, :result false}])
+
+    (fact "to :b"
+      (u/apply-guards ctx {:to :b, :guards [:a->b]})
+      => [{:guard :a->}
+          {:guard :a->b}
+          {:guard :->b}])))
+
+
+;;
+;; Transitions:
+;;
+
+
+(def get-transition-guards #'u/get-transition-guards)
+
+
+(deftest get-transition-guards-test
+  (let [ctx {:process {:states states
+                       :state  :a}}]
+    (fact (get-transition-guards ctx {:to :a, :guards [:a->a]}) => [:a->a :a])
+    (fact (get-transition-guards ctx {:to :b, :guards [:a->b]}) => [:a-> :a->b :->b])
+    (fact (get-transition-guards ctx {:to :c, :guards [:a->c]}) => [:a-> :a->c :->c])))
+
 
 (deftest get-transition-test
-  (fact
-    (get-transition process
-                    (get-process-state process :a)
-                    \a)
-    => {:to :a})
-  (fact
-    (get-transition process
-                    (get-process-state process :a)
-                    \b)
-    => {:to :b})
-  (fact
-    (get-transition process
-                    (get-process-state process :a)
-                    \c)
-    =throws=> (throws-ex-info "missing transition from state [:a] with signal [\\c]"
-                              {:type   :tilakone.core/error
-                               :error  :tilakone.core/missing-transition
-                               :state  {:name :a}
-                               :signal \c})))
+  (let [ctx        {:process {:states states
+                              :state  :a}
+                    :signal  \a}
+        with-allow (fn [ctx allow]
+                     (update ctx :process assoc :guard? (fn [ctx] (-> ctx :guard allow))))]
+
+    (testing "with signal \\a, possible transitions are to :a and to :c"
+      (fact (u/get-transitions ctx) => [{:to :a}, {:to :c}]))
+
+    (testing "allow stay in a (:a->a and :a) and to c (a->, a->c and ->c), first is to :a"
+      (let [ctx (with-allow ctx #{:a->a :a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx) => {:to :a})))
+
+    (testing "disallowing just :a->a (stay in :a) causes selection to be :c"
+      (let [ctx (with-allow ctx #{:a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx) => {:to :c})))
+
+    (testing "disallowing just :a (stay in :a) causes selection to be :c"
+      (let [ctx (with-allow ctx #{:a->a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx) => {:to :c})))
+
+    (testing "disallowing also :->c (enter :c) causes none to be available"
+      (let [ctx (with-allow ctx #{:a->a :a-> :a->c})]
+        (fact (u/get-transition ctx) =throws=> (throws-ex-info "transition from state [:a] with signal [\\a] forbidden by guard(s)"))))
+
+    (testing "in state :b signal \\x is not allowed"
+      (let [ctx (-> ctx
+                    (update :process assoc :state :b)
+                    (assoc :signal \x))]
+        (fact (u/get-transition ctx) =throws=> (throws-ex-info "missing transition from state [:b] with signal [\\x]"))))))
+
+;;
+;; Actions:
+;;
+
 
 (deftest apply-actions-test
-  (let [value  1
-        signal 2]
+  (let [ctx {:process {:states  states
+                       :state   :a
+                       :action! (fn [{:keys [action] :as ctx}]
+                                  (conj (-> ctx :process :value) action))
+                       :value   []}
+             :signal  \a}]
     (fact
-      (apply-actions value
-                     (fn [value signal action]
-                       (+ value signal action))
-                     signal
-                     [3 4 5])
-      => (-> (+ value signal 3)
-             (+ signal 4)
-             (+ signal 5)))))
+      (u/apply-actions ctx {:to :a, :actions [:a->a]})
+      => {:process {:value [:a->a :a]}})
 
-(deftest apply-fsm-actions-test
-  (let [value  1
-        signal 2]
     (fact
-      (apply-process-actions {:action! (fn [value signal action]
-                                         (+ value signal action))
-                              :value   value}
-                             signal
-                             [3 4 5])
-      => {:value (-> (+ value signal 3)
-                     (+ signal 4)
-                     (+ signal 5))})))
+      (u/apply-actions ctx {:to :b, :actions [:a->b]})
+      => {:process {:value [:a-> :a->b :->b]}})))

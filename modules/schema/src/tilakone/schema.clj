@@ -3,34 +3,17 @@
             [schema.core :as s :refer [defschema]])
   (:import (clojure.lang IFn)))
 
-(comment
-
-  ; Mental map for process schema:
-
-  {:states  [{:name        Any ; State name (can be string, keyword, symbol, any clojure value)
-              :desc        Str ; State description
-              :transitions [{:name    Any ; Transition name
-                             :desc    Str ; Transition description
-                             :to      Any ; Name of the next state
-                             :on      Matcher ; Data for match?, does the signal match this transition?
-                             :guards  [Guard] ; Data for guard?, is this transition allowed?
-                             :actions [Action]}] ; Actions to be performed on this transition
-              :enter       [Action] ; Actions to be performed when entering this state
-              :leave       [Action] ; Actions to be performed when leaving this state
-              :stay        [Action]}] ; Actions to be performed when signal is processed, but state remains the same
-   :match?  (fn [value signal & matcher] ... true/false) ; Signal matching predicate
-   :guard?  (fn [value signal & guard] ... true/false) ; Guard matching predicate
-   :action! (fn [value signal & action] ... value) ; Action function
-   :state   Any ; Current state
-   :value   Any} ; Current value
-
-  )
 
 (def StateName s/Any)
 (def TransitionName s/Any)
 (def Action s/Any)
 (def Matcher s/Any)
 (def Guard s/Any)
+
+
+(def state-actions-and-guards {(s/optional-key :actions) [Action]
+                               (s/optional-key :guards) [Guard]})
+
 
 (defschema Transition {(s/optional-key :name)    TransitionName
                        (s/optional-key :desc)    s/Str
@@ -40,13 +23,15 @@
                        (s/optional-key :actions) [Action]
                        s/Keyword                 s/Any})
 
+
 (defschema State {:name                   StateName
                   (s/optional-key :desc)  s/Str
                   :transitions            [Transition]
-                  (s/optional-key :enter) [Action]
-                  (s/optional-key :stay)  [Action]
-                  (s/optional-key :leave) [Action]
+                  (s/optional-key :enter) state-actions-and-guards
+                  (s/optional-key :stay)  state-actions-and-guards
+                  (s/optional-key :leave) state-actions-and-guards
                   s/Keyword               s/Any})
+
 
 (defschema FsmProcess {:states                   [State]
                        :state                    StateName
@@ -55,6 +40,7 @@
                        (s/optional-key :guard?)  IFn
                        (s/optional-key :action!) IFn
                        s/Keyword                 s/Any})
+
 
 (defn validate-states [states]
   (let [known-state? (->> states
@@ -82,7 +68,9 @@
                        :errors errors}))))
   states)
 
+
 (def process-checker (s/checker FsmProcess))
+
 
 (defn validate-process [process]
   (when-let [schema-errors (process-checker process)]
