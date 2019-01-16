@@ -13,19 +13,21 @@ Minimalistic finite state machine (FSM) in Clojure.
 >
 >    _source: [wiktionary.org](https://en.wiktionary.org/wiki/state_machine)_
 
+[![Clojars Project](https://img.shields.io/clojars/v/metosin/tilakone.svg)](https://clojars.org/metosin/tilakone)
+
 ## Usage
 
 All bundled:
 
 ```clj
-[metosin/tilakone "0.0.3"]
+[metosin/tilakone "0.0.4"]
 ```
 
 Optionally, the modules can be required separately:
 
 ```clj
-[metosin/tilakone.core "0.0.3"]
-[metosin/tilakone.schema "0.0.3"]
+[metosin/tilakone.core "0.0.4"]
+[metosin/tilakone.schema "0.0.4"]
 ```
 
 ## Intro
@@ -127,7 +129,6 @@ returns the FSM with possibly updated state and value.
 * examples on :enter/:leave actions, state guards, etc
 * add tilakone visualization
 * add perf tests
-* state level `:enter` and `:leave` should allow settings both action and guards
 
 ## License
 
