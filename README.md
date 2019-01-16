@@ -100,11 +100,11 @@ state `:start`. In _reduce_fsm_ the default behaviour for signal (that is, if no
 transition is found for signal) is to stay at the current state, but _tilakone_ 
 treats all undeclared state transfers as errors. For this purpose the above example 
 declares an explicit rule to allow any unmatched signal (`_`) in state `:start` to be 
-handled transition to state `:start`.
+handled as transition to state `:start`.
 
 The `count-ab` is the actual FSM. It contains the state declarations,
 optional actions function (more of actions later), current state and current
-value. Note that the state and value can be any clojure data value.
+value. Note that the state and value can be any clojure value.
 
 The `tilakone.core/apply-signal` function accepts an FSM and a signal. It
 returns the FSM with possibly updated state and value. 
@@ -119,18 +119,17 @@ returns the FSM with possibly updated state and value.
 * reduce-fsm is faster (at least at the moment)
 * reduce-fsm is more feature complete
 * tilakone FSMs are pure data™
-* tilakone code is quite a bit simpler with no macros and less code (reduce-fsm 592 lines, tilakone 105 lines)
+* tilakone code is quite a bit simpler with no macros and less code (reduce-fsm 592 lines, tilakone 145 lines)
 
 ## TODO
 
 * proper documentation
 * examples on :enter/:leave actions, state guards, etc
-* compare to reduce-fsm
-* add fsm visualization
+* add tilakone visualization
 * add perf tests
 
 ## License
 
-Copyright &copy; 2018 [Metosin Oy](https://www.metosin.fi/)
+Copyright &copy; 2019 [Metosin Oy](https://www.metosin.fi/)
 
 Distributed under the Eclipse Public License, the same as Clojure.
