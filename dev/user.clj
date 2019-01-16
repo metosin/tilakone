@@ -17,10 +17,10 @@
          (remove (comp :integration meta))
          (remove (comp :slow meta)))
     {:multithread? true
-     :report         pretty/report}))
+     :report       pretty/report}))
 
 (defn run-all-tests []
   (eftest/run-tests
     (mapcat eftest.runner/find-tests test-dirs)
     {:multithread? false
-     :report         pretty/report}))
+     :report       pretty/report}))

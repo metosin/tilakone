@@ -1,4 +1,4 @@
-(defproject metosin/tilakone.core "0.0.2-SNAPSHOT"
+(defproject metosin/tilakone.core "0.0.3"
   :description "Minimal finite state machine library"
   :dependencies []
   :license {:name "Eclipse Public License"
