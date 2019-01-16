@@ -1,11 +1,16 @@
 (ns tilakone.core
   (:require [tilakone.util :as u]))
 
+
 (def _
   "Special symbol to denote that the transition matches any signal"
   ::_)
 
-(defn apply-signal [process signal]
+
+(defn apply-signal
+  "Accepts a process and a signal, applies the signal to process and returns
+  (possibly) updated process."
+  [process signal]
   (let [current-state-name (-> process :state)
         current-state      (-> process (u/get-process-state current-state-name))
         transition         (-> process (u/get-transition current-state signal))
@@ -40,9 +45,9 @@
                 :enter       [Action] ; Actions to be performed when entering this state
                 :leave       [Action] ; Actions to be performed when leaving this state
                 :stay        [Action]}] ; Actions to be performed when signal is processed, but state remains the same
-     :match?  (fn [value signal matcher] ... true/false) ; Signal matching predicate
-     :guard?  (fn [value signal guard] ... true/false) ; Guard matching predicate
-     :action! (fn [value signal action] ... value) ; Action function
+     :match?  (fn [{:keys [process signal on]}] ... true/false) ; Signal matching predicate
+     :guard?  (fn [{:keys [process signal guard]}] ... true/false) ; Guard matching predicate
+     :action! (fn [{:keys [process signal action]}] ... value) ; Action function, return new `value`
      :state   Any ; Current state
      :value   Any}) ; Current value
 
