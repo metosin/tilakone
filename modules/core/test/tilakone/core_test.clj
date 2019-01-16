@@ -17,13 +17,10 @@
 
 (def count-ab
   [{:name        :start
-    :transitions [{:on \a
-                   :to :found-a}
-                  {:on _
-                   :to :start}]}
+    :transitions [{:on \a, :to :found-a}
+                  {:on _, :to :start}]}
    {:name        :found-a
-    :transitions [{:on \a
-                   :to :found-a}
+    :transitions [{:on \a, :to :found-a}
                   {:on      \b
                    :to      :start
                    :actions [:inc-val]}

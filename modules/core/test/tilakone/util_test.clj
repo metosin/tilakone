@@ -37,41 +37,62 @@
     => {:name :bar}))
 
 
+(deftest get-state-test
+  (fact
+    (tu/get-process-current-state {:states [{:name :foo}
+                                            {:name :bar}
+                                            {:name :boz}]
+                                   :state  :bar})
+    => {:name :bar}))
+
+
 ;;
 ;; Guards:
 ;;
 
+(let [ctx {:process {:value  1
+                     :guard? (fn [ctx]
+                               (case (-> ctx :guard)
+                                 1 true
+                                 2 false
+                                 3 (throw (ex-info "fail" {:rejected :reason}))))}
+           :signal  :some-signal}]
+  (-> ctx
+      (tu/apply-guards [1 2 3])
+      :tilakone.util/guards-errors))
 
 (deftest apply-guards!-test
-  (let [transition {:guards [1 2 3]}]
+  (let [ctx {:process {:value  1
+                       :guard? (fn [ctx]
+                                 (case (-> ctx :guard)
+                                   1 true
+                                   2 false
+                                   3 (throw (ex-info "fail" {:rejected :reason}))))}
+             :signal  :some-signal}]
+
     (fact
-      (tu/apply-guards! transition
-                        {:process {:value  1
-                                   :guard? (constantly true)}}
-                        {})
-      => truthy)
+      (-> ctx
+          (tu/apply-guards [1 1 1])
+          (tu/apply-guards [1 1 1])
+          :tilakone.util/guards-errors)
+      => nil)
+
     (fact
-      (tu/apply-guards! transition
-                        {:process {:value  1
-                                   :guard? (fn [ctx]
-                                             (case (-> ctx :guard)
-                                               1 true
-                                               2 false
-                                               3 (throw (ex-info "fail" {:rejected :reason}))))}
-                         :signal  :some-signal}
-                        {:name :state-x})
-      =throws=> (throws-ex-info "transition from state [:state-x] with signal [:some-signal] forbidden by guard(s)"
-                                {:type          :tilakone.core/error
-                                 :error         :tilakone.core/rejected-by-guard
-                                 :state         {:name :state-x}
-                                 :signal        :some-signal
-                                 :transition    {:guards [1 2 3]}
-                                 :value         1
-                                 :guard-results [{:guard  2
-                                                  :result false}
-                                                 {:guard   3
-                                                  :result  {:rejected :reason}
-                                                  :message "fail"}]}))))
+      (-> ctx
+          (tu/apply-guards [1 2 3])
+          :tilakone.util/guards-errors)
+      => [{:guard 3}
+          {:guard 2}])
+
+    (fact
+      (-> ctx
+          (tu/apply-guards [1 2 3])
+          (tu/apply-guards [1 2 3])
+          :tilakone.util/guards-errors)
+      => [{:guard 3, :result (throws-ex-info "fail" {:rejected :reason})}
+          {:guard 2, :result false}
+          {:guard 3, :result (throws-ex-info "fail" {:rejected :reason})}
+          {:guard 2, :result false}])))
 
 
 ;;
@@ -86,25 +107,6 @@
                        {:name        :a
                         :transitions [{:on \a, :to :a}
                                       {:on \b, :to :b}]}]})
-
-
-(def find-transition #'tu/find-transition)
-
-
-(deftest find-transition-test
-  (let [state       (tu/get-process-state process :foo)
-        transitions (:transitions state)
-        ctx         {:process process}]
-    (fact
-      (find-transition (assoc ctx :signal \a) transitions)
-      => {:to :a})
-    (fact
-      (find-transition (assoc ctx :signal \b) transitions)
-      => {:to :b})
-    (fact
-      (find-transition (assoc ctx :signal \x) transitions)
-      => {:to :c})))
-
 
 (deftest get-transition-test
   (fact
@@ -126,18 +128,17 @@
 ;; Actions:
 ;;
 
-
-(deftest apply-process-actions-test
-  (let [value  1
-        signal 2]
-    (fact
-      (tu/apply-process-actions {:action! (fn [ctx]
-                                            (+ (-> ctx :process :value)
-                                               (-> ctx :signal)
-                                               (-> ctx :action)))
-                                 :value   value}
-                                signal
-                                [3 4 5])
-      => {:value (-> (+ value signal 3)
-                     (+ signal 4)
-                     (+ signal 5))})))
+#_(deftest apply-process-actions-test
+    (let [ctx {:value  1
+               :signal 2}]
+      (fact
+        (tu/apply-actions {:action! (fn [ctx]
+                                      (+ (-> ctx :process :value)
+                                         (-> ctx :signal)
+                                         (-> ctx :action)))
+                           :value   value}
+                          signal
+                          [3 4 5])
+        => {:value (-> (+ value signal 3)
+                       (+ signal 4)
+                       (+ signal 5))})))

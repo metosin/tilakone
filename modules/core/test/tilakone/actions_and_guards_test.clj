@@ -10,9 +10,9 @@
                    :actions [[:action :start :found-a]]}
                   {:on      _
                    :actions [[:action :start :start]]}]
-    :enter       [[:enter :start]]
-    :leave       [[:leave :start]]
-    :stay        [[:stay :start]]}
+    :enter       {:actions [[:enter :start]]}
+    :leave       {:actions [[:leave :start]]}
+    :stay        {:actions [[:stay :start]]}}
    {:name        :found-a
     :transitions [{:on      \a
                    :actions [[:action :found-a :found-a]]}
@@ -21,15 +21,17 @@
                   {:on      _
                    :to      :start
                    :actions [[:action :found-a :start :via-b-_]]}]
-    :enter       [[:enter :found-a]]
-    :leave       [[:leave :found-a]]
-    :stay        [[:stay :found-a]]}])
+    :enter       {:actions [[:enter :found-a]]}
+    :leave       {:actions [[:leave :found-a]]}
+    :stay        {:actions [[:stay :found-a]]}}])
+
 
 (def count-ab-process {:states  count-ab
                        :action! (fn [{:keys [process signal action]}]
                                   (doto (-> process :value)
                                     (swap! conj (into [signal] action))))
                        :state   :start})
+
 
 (deftest actions-test
   (let [count-ab (assoc count-ab-process :value (atom []))]
