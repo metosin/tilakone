@@ -11,34 +11,38 @@
   "Accepts a process and a signal, applies the signal to process and returns
   (possibly) updated process."
   [process signal]
-  (let [current-state-name (-> process :state)
-        current-state      (u/get-process-state process current-state-name)
-        transition         (u/get-transition process current-state signal)
-        next-state-name    (-> transition :to (or current-state-name))
-        next-state         (u/get-process-state process next-state-name)
-        ctx                {:process    process
-                            :signal     signal
-                            :from-state current-state-name
-                            :to-state   next-state-name}]
-    (if (= next-state-name current-state-name)
-      ; signal does not cause state change:
-      (-> ctx
-          (u/apply-guards (-> current-state :stay :guards))
-          (u/report-guard-errors!)
-          (u/apply-actions (-> transition :actions))
-          (u/apply-actions (-> current-state :stay :actions))
-          :process)
-      ; signal does cause state change from current-state to next-state:
-      (-> ctx
-          (u/apply-guards (-> current-state :leave :guards))
-          (u/apply-guards (-> transition :guards))
-          (u/apply-guards (-> next-state :enter :guards))
-          (u/report-guard-errors!)
-          (u/apply-actions (-> current-state :leave :actions))
-          (update :process assoc :state next-state-name)
-          (u/apply-actions (-> transition :actions))
-          (u/apply-actions (-> next-state :enter :actions))
-          :process))))
+  (let [ctx        {:process process
+                    :signal  signal}
+        transition (u/get-transition ctx)
+        from-state (-> process :state)
+        to-state   (-> transition :to (or from-state))]
+    (-> ctx
+        (u/apply-actions transition)
+        :process
+        (assoc :state to-state))))
+
+
+(defn apply-guards
+  "Accepts a process and a signal, resolves all transitions that are possible with given
+  signal, returns seq of tuples of `[transitions guard-errors]`, where `guard-errors` are
+  errors reported by guards. If none of the guards report any errors for transition then
+  `guard-errors` is `nil`."
+  [process signal]
+  (let [ctx {:process process
+             :signal  signal}]
+    (->> (u/get-transitions ctx)
+         (map (fn [transition]
+                [transition (seq (u/apply-guards ctx transition))])))))
+
+
+(defn transfers-to
+  "Accepts a process and a signal, returns the name of the state the signal would
+  transfer the process if applied. Returns `nil` if signal is not allowed."
+  [process signal]
+  (->> (apply-guards process signal)
+       (u/find-first (complement second))
+       first
+       :to))
 
 
 (comment
@@ -53,7 +57,7 @@
                 :transitions [{:name    Any ;         Transition name
                                :desc    Str ;         Transition description
                                :to      Any ;         Name of the next state
-                               :on      Matcher ;     Data for match?, does the sfignal match this transition?
+                               :on      Matcher ;     Data for match?, does the signal match this transition?
                                :guards  [Guard] ;     Data for guard?, is this transition allowed?
                                :actions [Action]}] ;  Actions to be performed on this transition
                 :enter       {:guards  [Guard] ;      Guards that must approve transfer to this state.
