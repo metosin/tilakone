@@ -16,9 +16,9 @@
 
 (def count-ab
   {:states  count-ab-states
-   :action! (fn [value signal action]
+   :action! (fn [{:keys [process action]}]
               (case action
-                :inc-val (inc value)))
+                :inc-val (-> process :value inc)))
    :state   :start
    :value   0})
 

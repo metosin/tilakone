@@ -1,73 +1,117 @@
 (ns tilakone.util)
 
-(defn find-first [pred? coll]
+
+;;
+;; Generic utils:
+;;
+
+
+(defn- find-first [pred? coll]
   (some (fn [v]
           (when (pred? v)
             v))
         coll))
 
+
+;;
+;; State:
+;;
+
+
 (defn get-process-state [process state-name]
-  (find-first (comp (partial = state-name) :name)
-              (-> process :states)))
+  (->> process
+       :states
+       (find-first #(-> % :name (= state-name)))))
 
-(defn default-match? [_ signal on]
-  (= signal on))
 
-(defn find-transition [process state signal]
-  (let [value  (-> process :value)
-        match? (-> process :match? (or default-match?))]
-    (find-first (fn [{:keys [on]}]
-                  (or (= on :tilakone.core/_)
-                      (match? value signal on)))
-                (-> state :transitions))))
+;;
+;; Guards:
+;;
 
-(defn try-guard [guard? value signal guard]
+
+(defn- try-guard [guard? ctx]
   (try
-    (let [response (guard? value signal guard)]
+    (let [response (guard? ctx)]
       (when-not response
-        {:guard  guard
+        {:guard  (-> ctx :guard)
          :result response}))
     (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
-      {:guard   guard
+      {:guard   (-> ctx :guard)
        :result  (ex-data e)
-       :message #?(:clj (.getMessage e) :cljs (str e))})))
+       :message (ex-message e)})))
 
-(defn apply-guards! [transition {:keys [value guard?]} state signal]
-  (let [errors (reduce (fn [errors guard]
-                         (if-let [result (try-guard guard? value signal guard)]
-                           (conj errors result)
-                           errors))
-                       []
-                       (-> transition :guards))]
-    (when (seq errors)
+
+(defn apply-guards! [transition ctx state]
+  (let [guard? (-> ctx :process :guard?)
+        errors (->> transition
+                    :guards
+                    (reduce (fn [errors guard]
+                              (if-let [result (try-guard guard? (assoc ctx :guard guard))]
+                                (cons result errors)
+                                errors))
+                            nil)
+                    (reverse)
+                    (seq))]
+    (when errors
       (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
                               (-> state :name)
-                              (-> signal pr-str))
+                              (-> ctx :signal pr-str))
                       {:type          :tilakone.core/error
                        :error         :tilakone.core/rejected-by-guard
                        :state         state
-                       :signal        signal
+                       :signal        (-> ctx :signal)
                        :transition    transition
-                       :value         value
-                       :guard-results errors})))
-    transition))
+                       :value         (-> ctx :process :value)
+                       :guard-results errors}))))
+  transition)
+
+
+;;
+;; Transitions:
+;;
+
+
+(defn- default-match? [ctx]
+  (= (-> ctx :signal)
+     (-> ctx :on)))
+
+
+(defn- find-transition [ctx transitions]
+  (let [match? (-> ctx :process :match? (or default-match?))]
+    (find-first (fn [{:keys [on]}]
+                  (or (= on :tilakone.core/_)
+                      (match? (assoc ctx :on on))))
+                transitions)))
+
 
 (defn get-transition [process state signal]
-  (-> (find-transition process state signal)
+  (let [ctx        {:process process
+                    :signal  signal}
+        transition (find-transition ctx (-> state :transitions))]
+    (when-not transition
       (or (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
                                   (-> state :name)
                                   (-> signal pr-str))
                           {:type   :tilakone.core/error
                            :error  :tilakone.core/missing-transition
                            :state  state
-                           :signal signal})))
-      (apply-guards! process state signal)))
+                           :signal signal}))))
+    (apply-guards! ctx process state)
+    transition))
 
-(defn apply-actions [value action! signal actions]
-  (reduce (fn [value action]
-            (action! value signal action))
-          value
-          actions))
+
+;;
+;; Actions:
+;;
+
 
 (defn apply-process-actions [process signal actions]
-  (update process :value apply-actions (-> process :action!) signal actions))
+  (let [action! (-> process :action!)]
+    (-> (reduce (fn [ctx action]
+                  (->> (assoc ctx :action action)
+                       (action!)
+                       (assoc-in ctx [:process :value])))
+                {:process process
+                 :signal  signal}
+                actions)
+        :process)))

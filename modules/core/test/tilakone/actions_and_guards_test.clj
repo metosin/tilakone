@@ -26,9 +26,9 @@
     :stay        [[:stay :found-a]]}])
 
 (def count-ab-process {:states  count-ab
-                       :action! (fn [value signal action]
-                                  (swap! value conj (into [signal] action))
-                                  value)
+                       :action! (fn [{:keys [process signal action]}]
+                                  (doto (-> process :value)
+                                    (swap! conj (into [signal] action))))
                        :state   :start})
 
 (deftest actions-test
