@@ -11,6 +11,10 @@
 (def Guard s/Any)
 
 
+(def state-actions-and-guards {(s/optional-key :actions) [Action]
+                               (s/optional-key :guards) [Guard]})
+
+
 (defschema Transition {(s/optional-key :name)    TransitionName
                        (s/optional-key :desc)    s/Str
                        (s/optional-key :to)      StateName
@@ -23,9 +27,9 @@
 (defschema State {:name                   StateName
                   (s/optional-key :desc)  s/Str
                   :transitions            [Transition]
-                  (s/optional-key :enter) [Action]
-                  (s/optional-key :stay)  [Action]
-                  (s/optional-key :leave) [Action]
+                  (s/optional-key :enter) state-actions-and-guards
+                  (s/optional-key :stay)  state-actions-and-guards
+                  (s/optional-key :leave) state-actions-and-guards
                   s/Keyword               s/Any})
 
 
