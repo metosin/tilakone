@@ -4,63 +4,87 @@
             [tilakone.core :as tk :refer [_]]))
 
 
-(def states [{:name        :a
-              :enter       {:guards [:->a], :actions [:->a]}
-              :stay        {:guards [:a], :actions [:a]}
-              :leave       {:guards [:a->], :actions [:a->]}
-              :transitions [{:on \a, :to :a, :guards [:a->a], :actions [:a->a]}
-                            {:on \b, :to :b, :guards [:a->b], :actions [:a->b]}
-                            {:on _,, :to :c, :guards [:a->c], :actions [:a->c]}]}
+(def states [{::tk/name        :a
+              ::tk/enter       {::tk/guards  [:->a]
+                                ::tk/actions [:->a]}
+              ::tk/stay        {::tk/guards  [:a]
+                                ::tk/actions [:a]}
+              ::tk/leave       {::tk/guards  [:a->]
+                                ::tk/actions [:a->]}
+              ::tk/transitions [{::tk/on      \a
+                                 ::tk/to      :a
+                                 ::tk/guards  [:a->a]
+                                 ::tk/actions [:a->a]}
 
-             {:name        :b
-              :enter       {:guards [:->b], :actions [:->b]}
-              :stay        {:guards [:b], :actions [:b]}
-              :leave       {:guards [:b->], :actions [:b->]}
-              :transitions [{:on \a, :to :a, :guards [:b->a], :actions [:b->a]}
-                            {:on \b, :to :b, :guards [:b->b], :actions [:b->b]}]}
+                                {::tk/on      \b
+                                 ::tk/to      :b
+                                 ::tk/guards  [:a->b]
+                                 ::tk/actions [:a->b]}
 
-             {:name  :c
-              :enter {:guards [:->c], :actions [:->c]}}])
+                                {::tk/on     _
+                                 ::tk/to     :c
+                                 ::tk/guards [:a->c], ::tk/actions [:a->c]}]}
+
+             {::tk/name        :b
+              ::tk/enter       {::tk/guards  [:->b]
+                                ::tk/actions [:->b]}
+              ::tk/stay        {::tk/guards  [:b]
+                                ::tk/actions [:b]}
+              ::tk/leave       {::tk/guards  [:b->]
+                                ::tk/actions [:b->]}
+              ::tk/transitions [{::tk/on      \a
+                                 ::tk/to      :a
+                                 ::tk/guards  [:b->a]
+                                 ::tk/actions [:b->a]}
+
+                                {::tk/on      \b
+                                 ::tk/to      :b
+                                 ::tk/guards  [:b->b]
+                                 ::tk/actions [:b->b]}]}
+
+             {::tk/name  :c
+              ::tk/enter {::tk/guards  [:->c]
+                          ::tk/actions [:->c]}}])
 
 
 
 (deftest apply-signal-test
-  (let [process {:states  states
-                 :state   :a
-                 :guard?  (constantly true)
-                 :action! (fn [{:keys [action] :as ctx}]
-                            (conj (-> ctx :process :value) action))
-                 :value   []}]
+  (let [process {::tk/states  states
+                 ::tk/state   :a
+                 ::tk/guard?  (constantly true)
+                 ::tk/action! (fn [{::tk/keys [action] :as ctx}]
+                                (update-in ctx [::tk/process :trace] conj action))
+                 :trace       []}]
     (fact
       (tk/apply-signal process \a)
-      => {:state :a
-          :value [:a->a :a]})
+      => {::tk/state :a
+          :trace     [:a->a :a]})
 
     (fact
       (tk/apply-signal process \b)
-      => {:state :b
-          :value [:a-> :a->b :->b]})
+      => {::tk/state :b
+          :trace     [:a-> :a->b :->b]})
 
     (fact
       (tk/apply-signal process \x)
-      => {:state :c
-          :value [:a-> :a->c :->c]}))
+      => {::tk/state :c
+          :trace     [:a-> :a->c :->c]}))
 
-  (let [process {:states  states
-                 :state   :b
-                 :guard?  (constantly true)
-                 :action! (fn [{:keys [action] :as ctx}]
-                            (conj (-> ctx :process :value) action))
-                 :value   []}]
+  (let [process {::tk/states  states
+                 ::tk/state   :b
+                 ::tk/guard?  (constantly true)
+                 ::tk/action! (fn [{::tk/keys [action] :as ctx}]
+                                (update-in ctx [::tk/process :trace] conj action))
+                 :trace       []}]
     (fact
       (tk/apply-signal process \a)
-      => {:state :a
-          :value [:b-> :b->a :->a]})
+      => {::tk/state :a
+          :trace     [:b-> :b->a :->a]})
 
     (fact
       (tk/apply-signal process \b)
-      => {:state :b
-          :value [:b->b :b]})
+      => {::tk/state :b
+          :trace     [:b->b :b]})
 
     (fact
       (tk/apply-signal process \x)
@@ -68,43 +92,43 @@
 
 
 (deftest apply-guards-test
-  (let [process    {:states states
-                    :state  :a}
+  (let [process    {::tk/states states
+                    ::tk/state  :a}
         with-allow (fn [allow]
-                     (assoc process :guard? (fn [ctx] (-> ctx :guard allow some?))))]
+                     (assoc process ::tk/guard? (fn [ctx] (-> ctx ::tk/guard allow some?))))]
     (fact "don't allow anything, report all transitions with all guards returning `false`"
       (tk/apply-guards (with-allow #{}) \a)
-      => [[{:to :a} [{:guard :a->a, :result false}
-                     {:guard :a, :result false}]]
-          [{:to :c} [{:guard :a->, :result false}
-                     {:guard :a->c, :result false}
-                     {:guard :->c, :result false}]]])
+      => [[{:tilakone.core/to :a} [{::tk/guard :a->a, ::tk/result false}
+                                   {::tk/guard :a, ::tk/result false}]]
+          [{:tilakone.core/to :c} [{::tk/guard :a->, ::tk/result false}
+                                   {::tk/guard :a->c, ::tk/result false}
+                                   {::tk/guard :->c, ::tk/result false}]]])
 
     (fact "allow :a->a"
       (tk/apply-guards (with-allow #{:a->a}) \a)
-      => [[{:to :a} [{:guard :a, :result false}]]
-          [{:to :c} [{:guard :a->, :result false}
-                     {:guard :a->c, :result false}
-                     {:guard :->c, :result false}]]])
+      => [[{:tilakone.core/to :a} [{::tk/guard :a, ::tk/result false}]]
+          [{:tilakone.core/to :c} [{::tk/guard :a->, ::tk/result false}
+                                   {::tk/guard :a->c, ::tk/result false}
+                                   {::tk/guard :->c, ::tk/result false}]]])
 
     (fact "allow :a->a and :a"
       (tk/apply-guards (with-allow #{:a->a :a}) \a)
-      => [[{:to :a} nil]
-          [{:to :c} [{:guard :a->, :result false}
-                     {:guard :a->c, :result false}
-                     {:guard :->c, :result false}]]])
+      => [[{:tilakone.core/to :a} nil]
+          [{:tilakone.core/to :c} [{::tk/guard :a->, ::tk/result false}
+                                   {::tk/guard :a->c, ::tk/result false}
+                                   {::tk/guard :->c, ::tk/result false}]]])
 
     (fact "allow :a->a, :a, :a->, :a->c and :->c"
       (tk/apply-guards (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
-      => [[{:to :a} nil]
-          [{:to :c} nil]])))
+      => [[{:tilakone.core/to :a} nil]
+          [{:tilakone.core/to :c} nil]])))
 
 
 (deftest transfers-to-test
-  (let [process    {:states states
-                    :state  :a}
+  (let [process    {::tk/states states
+                    ::tk/state  :a}
         with-allow (fn [allow]
-                     (assoc process :guard? (fn [ctx] (-> ctx :guard allow some?))))]
+                     (assoc process ::tk/guard? (fn [ctx] (-> ctx ::tk/guard allow some?))))]
     (fact "don't allow anything, can't transfer anywhere"
       (tk/transfers-to (with-allow #{}) \a)
       => nil)

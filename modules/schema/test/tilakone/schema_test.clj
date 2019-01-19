@@ -12,32 +12,32 @@
 
 (deftest validate-states-test
   (fact "valid states data"
-    (s/validate-states [{:name        :a
-                         :enter       {:guards [:->a], :actions [:->a]}
-                         :stay        {:guards [:a], :actions [:a]}
-                         :leave       {:guards [:a->], :actions [:a->]}
-                         :transitions [{:on \a, :to :a, :guards [:a->a], :actions [:a->a]}
-                                       {:on \b, :to :b, :guards [:a->b], :actions [:a->b]}
-                                       {:on _,, :to :c, :guards [:a->c], :actions [:a->c]}]}
+    (s/validate-states [{::tk/name        :a
+                         ::tk/enter       {::tk/guards [:->a], ::tk/actions [:->a]}
+                         ::tk/stay        {::tk/guards [:a], ::tk/actions [:a]}
+                         ::tk/leave       {::tk/guards [:a->], ::tk/actions [:a->]}
+                         ::tk/transitions [{::tk/on \a, ::tk/to :a, ::tk/guards [:a->a], ::tk/actions [:a->a]}
+                                           {::tk/on \b, ::tk/to :b, ::tk/guards [:a->b], ::tk/actions [:a->b]}
+                                           {::tk/on _,, ::tk/to :c, ::tk/guards [:a->c], ::tk/actions [:a->c]}]}
 
-                        {:name        :b
-                         :enter       {:guards [:->b], :actions [:->b]}
-                         :stay        {:guards [:b], :actions [:b]}
-                         :leave       {:guards [:b->], :actions [:b->]}
-                         :transitions [{:on \a, :to :a, :guards [:b->a], :actions [:b->a]}
-                                       {:on \b, :to :b, :guards [:b->b], :actions [:b->b]}]}
+                        {::tk/name        :b
+                         ::tk/enter       {::tk/guards [:->b], ::tk/actions [:->b]}
+                         ::tk/stay        {::tk/guards [:b], ::tk/actions [:b]}
+                         ::tk/leave       {::tk/guards [:b->], ::tk/actions [:b->]}
+                         ::tk/transitions [{::tk/on \a, ::tk/to :a, ::tk/guards [:b->a], ::tk/actions [:b->a]}
+                                           {::tk/on \b, ::tk/to :b, ::tk/guards [:b->b], ::tk/actions [:b->b]}]}
 
-                        {:name  :c
-                         :enter {:guards [:->c], :actions [:->c]}}])
+                        {::tk/name  :c
+                         ::tk/enter {::tk/guards [:->c], ::tk/actions [:->c]}}])
     => truthy)
 
   (fact "unknown target states"
-    (s/validate-states [{:name        :start
-                         :transitions [{:to :found-a
-                                        :on \a}]}
-                        {:name        :found-a
-                         :transitions [{:to :found-x}]}])
+    (s/validate-states [{::tk/name        :start
+                         ::tk/transitions [{::tk/to :found-a
+                                            ::tk/on \a}]}
+                        {::tk/name        :found-a
+                         ::tk/transitions [{::tk/to :found-x}]}])
     =throws=> (throws-ex-info "unknown target states: state [:found-a] has transition [anonymous] to unknown state [:found-x]"
                               {:type   :tilakone.core/error
-                               :errors [{:state      {:name :found-a}
-                                         :transition {:to :found-x}}]})))
+                               :errors [{::tk/state      {::tk/name :found-a}
+                                         ::tk/transition {::tk/to :found-x}}]})))

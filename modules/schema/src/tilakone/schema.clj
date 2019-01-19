@@ -1,6 +1,7 @@
 (ns tilakone.schema
   (:require [clojure.string :as str]
-            [schema.core :as s :refer [defschema]])
+            [schema.core :as s :refer [defschema]]
+            [tilakone.core :as tk])
   (:import (clojure.lang IFn)))
 
 
@@ -11,54 +12,53 @@
 (def Guard s/Any)
 
 
-(def state-actions-and-guards {(s/optional-key :actions) [Action]
-                               (s/optional-key :guards) [Guard]})
+(def state-actions-and-guards {(s/optional-key ::tk/actions) [Action]
+                               (s/optional-key ::tk/guards)  [Guard]})
 
 
-(defschema Transition {(s/optional-key :name)    TransitionName
-                       (s/optional-key :desc)    s/Str
-                       (s/optional-key :to)      StateName
-                       :on                       Matcher
-                       (s/optional-key :guards)  [Guard]
-                       (s/optional-key :actions) [Action]
-                       s/Keyword                 s/Any})
+(defschema Transition {(s/optional-key ::tk/name)    TransitionName
+                       (s/optional-key ::tk/desc)    s/Str
+                       (s/optional-key ::tk/to)      StateName
+                       ::tk/on                       Matcher
+                       (s/optional-key ::tk/guards)  [Guard]
+                       (s/optional-key ::tk/actions) [Action]
+                       s/Keyword                     s/Any})
 
 
-(defschema State {:name                   StateName
-                  (s/optional-key :desc)  s/Str
-                  :transitions            [Transition]
-                  (s/optional-key :enter) state-actions-and-guards
-                  (s/optional-key :stay)  state-actions-and-guards
-                  (s/optional-key :leave) state-actions-and-guards
-                  s/Keyword               s/Any})
+(defschema State {::tk/name                   StateName
+                  (s/optional-key ::tk/desc)  s/Str
+                  ::tk/transitions            [Transition]
+                  (s/optional-key ::tk/enter) state-actions-and-guards
+                  (s/optional-key ::tk/stay)  state-actions-and-guards
+                  (s/optional-key ::tk/leave) state-actions-and-guards
+                  s/Keyword                   s/Any})
 
 
-(defschema FsmProcess {:states                   [State]
-                       :state                    StateName
-                       :value                    s/Any
-                       (s/optional-key :match?)  IFn
-                       (s/optional-key :guard?)  IFn
-                       (s/optional-key :action!) IFn
-                       s/Keyword                 s/Any})
+(defschema FsmProcess {::tk/states                   [State]
+                       ::tk/state                    StateName
+                       (s/optional-key ::tk/match?)  IFn
+                       (s/optional-key ::tk/guard?)  IFn
+                       (s/optional-key ::tk/action!) IFn
+                       s/Keyword                     s/Any})
 
 
 (defn validate-states [states]
   (let [known-state? (->> states
-                          (map :name)
+                          (map ::tk/name)
                           (set))
         errors       (mapcat (fn [state]
                                (->> state
-                                    :transitions
-                                    (remove (fn [{:keys [to]}]
+                                    ::tk/transitions
+                                    (remove (fn [{::tk/keys [to]}]
                                               (or (nil? to)
                                                   (known-state? to))))
                                     (map (fn [transition]
-                                           {:state      state
-                                            :transition transition
-                                            :message    (format "state [%s] has transition [%s] to unknown state [%s]"
-                                                                (-> state :name)
-                                                                (-> transition :name (or "anonymous"))
-                                                                (-> transition :to))}))))
+                                           {::tk/state      state
+                                            ::tk/transition transition
+                                            :message        (format "state [%s] has transition [%s] to unknown state [%s]"
+                                                                    (-> state ::tk/name)
+                                                                    (-> transition ::tk/name (or "anonymous"))
+                                                                    (-> transition ::tk/to))}))))
                              states)]
     (when (seq errors)
       (throw (ex-info (str "unknown target states: " (->> errors
@@ -79,5 +79,5 @@
                      :error         :tilakone.core/schema-error
                      :schema-errors schema-errors
                      :fsm           process})))
-  (validate-states (:states process))
+  (validate-states (::tk/states process))
   process)

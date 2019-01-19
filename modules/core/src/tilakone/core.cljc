@@ -11,15 +11,15 @@
   "Accepts a process and a signal, applies the signal to process and returns
   (possibly) updated process."
   [process signal]
-  (let [ctx        {:process process
-                    :signal  signal}
+  (let [ctx        {::process process
+                    ::signal  signal}
         transition (u/get-transition ctx)
-        from-state (-> process :state)
-        to-state   (-> transition :to (or from-state))]
+        from-state (-> process ::state)
+        to-state   (-> transition ::to (or from-state))]
     (-> ctx
         (u/apply-actions transition)
-        :process
-        (assoc :state to-state))))
+        ::process
+        (assoc ::state to-state))))
 
 
 (defn apply-guards
@@ -28,8 +28,8 @@
   errors reported by guards. If none of the guards report any errors for transition then
   `guard-errors` is `nil`."
   [process signal]
-  (let [ctx {:process process
-             :signal  signal}]
+  (let [ctx {::process process
+             ::signal  signal}]
     (->> (u/get-transitions ctx)
          (map (fn [transition]
                 [transition (seq (u/apply-guards ctx transition))])))))
@@ -42,7 +42,7 @@
   (->> (apply-guards process signal)
        (u/find-first (complement second))
        first
-       :to))
+       ::to))
 
 
 (comment
@@ -52,24 +52,26 @@
   ;
 
   (def FSM
-    {:states  [{:name        Any ;                    State name (can be string, keyword, symbol, any clojure value)
-                :desc        Str ;                    State description
-                :transitions [{:name    Any ;         Transition name
-                               :desc    Str ;         Transition description
-                               :to      Any ;         Name of the next state
-                               :on      Matcher ;     Data for match?, does the signal match this transition?
-                               :guards  [Guard] ;     Data for guard?, is this transition allowed?
-                               :actions [Action]}] ;  Actions to be performed on this transition
-                :enter       {:guards  [Guard] ;      Guards that must approve transfer to this state.
-                              :actions [Action]} ;    Actions to be performed when entering this state.
-                :leave       {:guards  [Guard] ;      Guards that must approve transfer from this state.
-                              :actions [Action]} ;    Actions to be performed when leaving this state
-                :stay        {:guards  [Guard] ;      Guards that must approve transfer staying in this.
-                              :actions [Action]}}] ;  Actions to be performed when signal is processed, but state remains the same
-     :match?  (fn [{:keys [process signal on]}] ... true/false) ;      Signal matching predicate
-     :guard?  (fn [{:keys [process signal guard]}] ... true/false) ;   Guard matching predicate
-     :action! (fn [{:keys [process signal action]}] ... value) ;       Action function, return new `value`
-     :state   Any ;     Current state
-     :value   Any}) ;   Current value
+    {::state   Any ;                                     Current state
+     ::states  [{::name        Any ;                     State name (can be string, keyword, symbol, any clojure value)
+                 ::desc        Str ;                     Optional state description
+                 ::transitions [{::name    Any ;         Transition name
+                                 ::desc    Str ;         Transition description
+                                 ::to      Any ;         Name of the next state
+                                 ::on      Matcher ;     Data for match?, does the signal match this transition?
+                                 ::guards  [Guard] ;     Data for guard?, is this transition allowed?
+                                 ::actions [Action]}] ;  Actions to be performed on this transition
+                 ; Guards and actions used when state is transferred to this stateP
+                 ::enter       {::guards  [Guard]
+                                ::actions [Action]}
+                 ; Guards and actions used when state is transferred from this state:
+                 ::leave       {::guards  [Guard]
+                                ::actions [Action]}
+                 ; Guards and actions used when state transfer is not made:
+                 ::stay        {::guards  [Guard]
+                                ::actions [Action]}}]
+     ::match?  (fn [{::keys [process signal on]}] ... true/false) ;      Signal matching predicate
+     ::guard?  (fn [{::keys [process signal guard]}] ... true/false) ;   Guard matching predicate
+     ::action! (fn [{::keys [process signal action]}] ... value)}) ;     Action function
 
   )
