@@ -1,6 +1,8 @@
-(defproject metosin/tilakone.schema "0.0.3"
+(defproject metosin/tilakone.schema "0.0.4"
   :description "Minimal finite state machine library"
-  :dependencies [[metosin/tilakone.core "0.0.3"]
+  :url "https://github.com/metosin/tilakone"
+  :scm {:name "git", :url "https://github.com/metosin/tilakone"}
+  :dependencies [[metosin/tilakone.core "0.0.4"]
                  [prismatic/schema "1.1.9"]]
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"})

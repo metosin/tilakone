@@ -29,18 +29,18 @@
 ;
 
 (def light-machine
-  {:states [{:name        "green"
-             :transitions [{:on "TIMER"
-                            :to "yellow"}]}
-            {:name        "yellow"
-             :transitions [{:on "TIMER"
-                            :to "red"}]}
-            {:name        "red"
-             :transitions [{:on "TIMER"
-                            :to "green"}]}]
-   :state  "green"})
+  {::tk/states [{::tk/name        "green"
+                 ::tk/transitions [{::tk/on "TIMER"
+                                    ::tk/to "yellow"}]}
+                {::tk/name        "yellow"
+                 ::tk/transitions [{::tk/on "TIMER"
+                                    ::tk/to "red"}]}
+                {::tk/name        "red"
+                 ::tk/transitions [{::tk/on "TIMER"
+                                    ::tk/to "green"}]}]
+   ::tk/state  "green"})
 
 (->> (repeat 5 "TIMER")
      (reduce tk/apply-signal light-machine)
-     :state)
+     ::tk/state)
 ;=> "red"
