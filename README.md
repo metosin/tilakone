@@ -69,29 +69,29 @@ Here's the same example with _tilakone_:
 ; State definitions, pure data here:
 
 (def count-ab-states
-  [{:name        :start
-    :transitions [{:on \a, :to :found-a}
-                  {:on _, :to :start}]}
-   {:name        :found-a
-    :transitions [{:on \a, :to :found-a}
-                  {:on \b, :to :start, :actions [:inc-val]}
-                  {:on _, :to :start}]}])
+  [{::tk/name        :start
+    ::tk/transitions [{::tk/on \a, ::tk/to :found-a}
+                      {::tk/on _}]}
+   {::tk/name        :found-a
+    ::tk/transitions [{::tk/on \a}
+                      {::tk/on \b, ::tk/to :start, ::tk/actions [:inc-val]}
+                      {::tk/on _, ::tk/to :start}]}])
 
-; FSM has states, a function to execute actions, and current state and value: 
+; FSM has states, a function to execute actions, and current state and value:
 
 (def count-ab
-  {:states  count-ab-states
-   :action! (fn [value signal action]
-              (case action
-                :inc-val (inc value)))
-   :state   :start
-   :value   0})
+  {::tk/states  count-ab-states
+   ::tk/action! (fn [{::tk/keys [action] :as ctx}]
+                  (case action
+                    :inc-val (update-in ctx [::tk/process :count] inc)))
+   ::tk/state   :start
+   :count       0})
 
 ; Lets apply same inputs to our FSM:
- 
+
 (->> ["abaaabc" "aaacb" "bbbcab"]
      (map (partial reduce tk/apply-signal count-ab))
-     (map :value))
+     (map :count))
 ;=> (2 0 1)
 ```
 
