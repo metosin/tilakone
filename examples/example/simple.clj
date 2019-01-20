@@ -21,7 +21,7 @@
 (def count-ab-process
   {::tk/states  count-ab
    ::tk/state   :start
-   ::tk/action! (fn [fsm signal action]
+   ::tk/action! (fn [{::tk/keys [action] :as fsm}]
                   (case action
                     :inc-val (update fsm :value inc)))
    :value       0})

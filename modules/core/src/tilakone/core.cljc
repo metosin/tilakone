@@ -21,9 +21,10 @@
 
 (defn apply-guards
   "Accepts a FSM and a signal, resolves all transitions that are possible with given
-  signal, returns seq of tuples of `[transitions guard-errors]`, where `guard-errors` are
-  errors reported by guards. If none of the guards report any errors for transition then
-  `guard-errors` is `nil`."
+  signal, returns seq of tuples of `[transitions guard-results]`, where `guard-results` are
+  results reported by guards. Each result is a map with `:tilakone.core/allow?` (boolean
+  indicating guard verdict), `:tilakone.core/guard` (the guard data from fsm), and
+  `:tilakone.core/result` (the return value of guard, or an exception)."
   [fsm signal]
   (->> (u/get-transitions fsm signal)
        (map (fn [transition]
@@ -35,7 +36,8 @@
   transfer the FSM if applied. Returns `nil` if signal is not allowed."
   [fsm signal]
   (->> (apply-guards fsm signal)
-       (u/find-first (complement second))
+       (u/find-first (fn [[_ guard-results]]
+                       (every? ::allow? guard-results)))
        first
        ::to))
 
@@ -66,7 +68,7 @@
                  ::stay        {::guards  [Guard]
                                 ::actions [Action]}}]
      ::match?  (fn [signal on] ... true/false) ;   Signal matching predicate
-     ::guard?  (fn [fsm guard] ... true/false) ;   Guard matching predicate
-     ::action! (fn [fsm action] ... value)}) ;     Action function
+     ::guard?  (fn [{:tilakone.core/keys [signal guard] :as fsm}] ... true/false) ;   Guard function
+     ::action! (fn [{:tilakone.core/keys [signal action] :as fsm}] ... fsm)}) ;       Action function
 
   )

@@ -8,9 +8,6 @@ The "top level" was sometimes named as `ctx`, now it's consistently named as `fs
 Breaking change: `match?` now accepts two arguments, the signal and the `:tilakone.core/on` of the transition, and is
 expected to return truthy if the signal matches the second argument.
 
-Breaking change: Callbacks `guard?` and `action!` now accept three arguments, the FSM, the signal and `guard` or 
-`action`, respectively.  
-
 
 # 0.0.4  (2019/01/19)  Breaking changes
 

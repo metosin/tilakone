@@ -76,7 +76,7 @@
 (deftest apply-guards!-test
   (let [fsm    {:tilakone.core/states states
                 :tilakone.core/state  :a
-                :tilakone.core/guard? (fn [fsm signal guard]
+                :tilakone.core/guard? (fn [_]
                                         false)}]
 
     (fact "stay in :a"
@@ -112,7 +112,7 @@
                     :tilakone.core/state  :a}
         with-allow (fn [ctx allow]
                      (assoc ctx :tilakone.core/guard?
-                                (fn [_ _ guard]
+                                (fn [{:tilakone.core/keys [guard]}]
                                   (allow guard))))]
 
     (testing "with signal \\a, possible transitions are to :a and to :c"
@@ -148,7 +148,7 @@
 (deftest apply-actions-test
   (let [fsm {:tilakone.core/states  states
              :tilakone.core/state   :a
-             :tilakone.core/action! (fn [fsm signal action]
+             :tilakone.core/action! (fn [{:tilakone.core/keys [signal action] :as fsm}]
                                       (update fsm :trace conj [signal action]))
              :trace                 []}]
     (fact

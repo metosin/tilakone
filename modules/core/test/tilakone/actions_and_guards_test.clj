@@ -29,7 +29,7 @@
 
 
 (def count-ab-process {::tk/states  count-ab
-                       ::tk/action! (fn [fsm signal action]
+                       ::tk/action! (fn [{::tk/keys [signal action] :as fsm}]
                                       (update fsm :trace conj (into [signal] action)))
                        ::tk/state   :start})
 

@@ -16,7 +16,7 @@
 
 (def count-ab
   {::tk/states  count-ab-states
-   ::tk/action! (fn [fsm signal action]
+   ::tk/action! (fn [{::tk/keys [action] :as fsm}]
                   (case action
                     :inc-val (update fsm :count inc)))
    ::tk/state   :start

@@ -53,22 +53,26 @@
 ;;
 
 
-(defn- try-guard [fsm signal guard]
+(defn- try-guard [fsm guard]
   (try
     (let [guard?   (-> fsm :tilakone.core/guard?)
-          response (guard? fsm signal guard)]
-      (when-not response
-        {:tilakone.core/guard  guard
-         :tilakone.core/result response}))
+          response (-> fsm
+                       (assoc :tilakone.core/guard guard)
+                       (guard?))]
+      {:tilakone.core/allow? (if response true false)
+       :tilakone.core/guard  guard
+       :tilakone.core/result response})
     (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
-      {:tilakone.core/guard  guard
+      {:tilakone.core/allow? false
+       :tilakone.core/guard  guard
        :tilakone.core/result e})))
 
 
 (defn apply-guards [fsm signal transition]
-  (->> (get-transition-guards fsm transition)
-       (keep #(try-guard fsm signal %))
-       (seq)))
+  (let [fsm (assoc fsm :tilakone.core/signal signal)]
+    (->> (get-transition-guards fsm transition)
+         (map #(try-guard fsm %))
+         (seq))))
 
 
 ;;
@@ -92,9 +96,9 @@
 
 
 (defn- allowed-transition? [fsm signal transition]
-  (let [reject? (partial try-guard fsm signal)
-        allow?  (complement reject?)
-        guards  (get-transition-guards fsm transition)]
+  (let [fsm    (assoc fsm :tilakone.core/signal signal)
+        allow? (fn [guard] (-> (try-guard fsm guard) :tilakone.core/allow?))
+        guards (get-transition-guards fsm transition)]
     (every? allow? guards)))
 
 
@@ -133,7 +137,9 @@
 
 (defn apply-actions [fsm signal transition]
   (let [action! (-> fsm :tilakone.core/action!)]
-    (reduce (fn [fsm action]
-              (action! fsm signal action))
-            fsm
-            (get-transition-actions fsm transition))))
+    (-> (reduce (fn [fsm action]
+                  (action! (assoc fsm :tilakone.core/action action)))
+                (assoc fsm :tilakone.core/signal signal)
+                (get-transition-actions fsm transition))
+        (dissoc :tilakone.core/signal)
+        (dissoc :tilakone.core/action))))
