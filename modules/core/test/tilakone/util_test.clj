@@ -30,19 +30,19 @@
 
 (deftest get-state-test
   (fact
-    (u/get-process-state {:tilakone.core/states [{:tilakone.core/name :foo}
-                                                 {:tilakone.core/name :bar}
-                                                 {:tilakone.core/name :boz}]}
-                         :bar)
+    (u/state {:tilakone.core/states [{:tilakone.core/name :foo}
+                                     {:tilakone.core/name :bar}
+                                     {:tilakone.core/name :boz}]}
+             :bar)
     => {:tilakone.core/name :bar}))
 
 
 (deftest get-state-test
   (fact
-    (u/get-process-current-state {:tilakone.core/states [{:tilakone.core/name :foo}
-                                                         {:tilakone.core/name :bar}
-                                                         {:tilakone.core/name :boz}]
-                                  :tilakone.core/state  :bar})
+    (u/current-state {:tilakone.core/states [{:tilakone.core/name :foo}
+                                             {:tilakone.core/name :bar}
+                                             {:tilakone.core/name :boz}]
+                      :tilakone.core/state  :bar})
     => {:tilakone.core/name :bar}))
 
 
@@ -74,20 +74,18 @@
 
 
 (deftest apply-guards!-test
-  (let [visits (atom [])
-        ctx    {:tilakone.core/process {:tilakone.core/states states
-                                        :tilakone.core/state  :a
-                                        :tilakone.core/guard? (fn [ctx]
-                                                                (swap! visits conj (-> ctx :tilakone.core/guard))
-                                                                false)}}]
+  (let [fsm    {:tilakone.core/states states
+                :tilakone.core/state  :a
+                :tilakone.core/guard? (fn [fsm signal guard]
+                                        false)}]
 
     (fact "stay in :a"
-      (u/apply-guards ctx {:tilakone.core/to :a, :tilakone.core/guards [:a->a]})
+      (u/apply-guards fsm :signal {:tilakone.core/to :a, :tilakone.core/guards [:a->a]})
       => [{:tilakone.core/guard :a->a, :tilakone.core/result false}
           {:tilakone.core/guard :a, :tilakone.core/result false}])
 
     (fact "to :b"
-      (u/apply-guards ctx {:tilakone.core/to :b, :tilakone.core/guards [:a->b]})
+      (u/apply-guards fsm :signal {:tilakone.core/to :b, :tilakone.core/guards [:a->b]})
       => [{:tilakone.core/guard :a->}
           {:tilakone.core/guard :a->b}
           {:tilakone.core/guard :->b}])))
@@ -102,44 +100,45 @@
 
 
 (deftest get-transition-guards-test
-  (let [ctx {:tilakone.core/process {:tilakone.core/states states
-                                     :tilakone.core/state  :a}}]
-    (fact (get-transition-guards ctx {:tilakone.core/to :a, :tilakone.core/guards [:a->a]}) => [:a->a :a])
-    (fact (get-transition-guards ctx {:tilakone.core/to :b, :tilakone.core/guards [:a->b]}) => [:a-> :a->b :->b])
-    (fact (get-transition-guards ctx {:tilakone.core/to :c, :tilakone.core/guards [:a->c]}) => [:a-> :a->c :->c])))
+  (let [fsm {:tilakone.core/states states
+             :tilakone.core/state  :a}]
+    (fact (get-transition-guards fsm {:tilakone.core/to :a, :tilakone.core/guards [:a->a]}) => [:a->a :a])
+    (fact (get-transition-guards fsm {:tilakone.core/to :b, :tilakone.core/guards [:a->b]}) => [:a-> :a->b :->b])
+    (fact (get-transition-guards fsm {:tilakone.core/to :c, :tilakone.core/guards [:a->c]}) => [:a-> :a->c :->c])))
 
 
 (deftest get-transition-test
-  (let [ctx        {:tilakone.core/process {:tilakone.core/states states
-                                            :tilakone.core/state  :a}
-                    :tilakone.core/signal  \a}
+  (let [fsm        {:tilakone.core/states states
+                    :tilakone.core/state  :a}
         with-allow (fn [ctx allow]
-                     (update ctx :tilakone.core/process assoc :tilakone.core/guard? (fn [ctx] (-> ctx :tilakone.core/guard allow))))]
+                     (assoc ctx :tilakone.core/guard?
+                                (fn [_ _ guard]
+                                  (allow guard))))]
 
     (testing "with signal \\a, possible transitions are to :a and to :c"
-      (fact (u/get-transitions ctx) => [{:tilakone.core/to :a}, {:tilakone.core/to :c}]))
+      (fact (u/get-transitions fsm \a) => [{:tilakone.core/to :a}, {:tilakone.core/to :c}]))
 
     (testing "allow stay in a (:a->a and :a) and to c (a->, a->c and ->c), first is to :a"
-      (let [ctx (with-allow ctx #{:a->a :a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx) => {:tilakone.core/to :a})))
+      (let [ctx (with-allow fsm #{:a->a :a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx \a) => {:tilakone.core/to :a})))
 
     (testing "disallowing just :a->a (stay in :a) causes selection to be :c"
-      (let [ctx (with-allow ctx #{:a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx) => {:tilakone.core/to :c})))
+      (let [ctx (with-allow fsm #{:a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx \a) => {:tilakone.core/to :c})))
 
     (testing "disallowing just :a (stay in :a) causes selection to be :c"
-      (let [ctx (with-allow ctx #{:a->a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx) => {:tilakone.core/to :c})))
+      (let [ctx (with-allow fsm #{:a->a :a-> :a->c :->c})]
+        (fact (u/get-transition ctx \a) => {:tilakone.core/to :c})))
 
     (testing "disallowing also :->c (enter :c) causes none to be available"
-      (let [ctx (with-allow ctx #{:a->a :a-> :a->c})]
-        (fact (u/get-transition ctx) =throws=> (throws-ex-info "transition from state [:a] with signal [\\a] forbidden by guard(s)"))))
+      (let [ctx (with-allow fsm #{:a->a :a-> :a->c})]
+        (fact (u/get-transition ctx \a) =throws=> (throws-ex-info "transition from state [:a] with signal [\\a] forbidden by guard(s)"))))
 
     (testing "in state :b signal \\x is not allowed"
-      (let [ctx (-> ctx
-                    (update :tilakone.core/process assoc :tilakone.core/state :b)
+      (let [ctx (-> fsm
+                    (assoc :tilakone.core/state :b)
                     (assoc :tilakone.core/signal \x))]
-        (fact (u/get-transition ctx) =throws=> (throws-ex-info "missing transition from state [:b] with signal [\\x]"))))))
+        (fact (u/get-transition ctx \x) =throws=> (throws-ex-info "missing transition from state [:b] with signal [\\x]"))))))
 
 ;;
 ;; Actions:
@@ -147,16 +146,18 @@
 
 
 (deftest apply-actions-test
-  (let [ctx {:tilakone.core/process {:tilakone.core/states  states
-                                     :tilakone.core/state   :a
-                                     :tilakone.core/action! (fn [{:tilakone.core/keys [action] :as ctx}]
-                                                              (update-in ctx [:tilakone.core/process :trace] conj action))
-                                     :trace                 []}
-             :tilakone.core/signal  \a}]
+  (let [fsm {:tilakone.core/states  states
+             :tilakone.core/state   :a
+             :tilakone.core/action! (fn [fsm signal action]
+                                      (update fsm :trace conj [signal action]))
+             :trace                 []}]
     (fact
-      (u/apply-actions ctx {:tilakone.core/to :a, :tilakone.core/actions [:a->a]})
-      => {:tilakone.core/process {:trace [:a->a :a]}})
+      (u/apply-actions fsm :signal {:tilakone.core/to :a, :tilakone.core/actions [:a->a]})
+      => {:trace [[:signal :a->a]
+                  [:signal :a]]})
 
     (fact
-      (u/apply-actions ctx {:tilakone.core/to :b, :tilakone.core/actions [:a->b]})
-      => {:tilakone.core/process {:trace [:a-> :a->b :->b]}})))
+      (u/apply-actions fsm :signal {:tilakone.core/to :b, :tilakone.core/actions [:a->b]})
+      => {:trace [[:signal :a->]
+                  [:signal :a->b]
+                  [:signal :->b]]})))

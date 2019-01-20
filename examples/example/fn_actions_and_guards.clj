@@ -9,13 +9,13 @@
                       {::tk/on _}]}
    {::tk/name        :found-a
     ::tk/transitions [{::tk/on \a}
-                      {::tk/on \b, ::tk/to :start, ::tk/actions [#(update-in % [::tk/process :count] inc)]}
+                      {::tk/on \b, ::tk/to :start, ::tk/actions [#(update % :count inc)]}
                       {::tk/on _, ::tk/to :start}]}])
 
 
 (def count-ab-process
   {::tk/states  count-ab
-   ::tk/action! (fn [{::tk/keys [action] :as ctx}] (action ctx))
+   ::tk/action! (fn [fsm signal action] (action fsm))
    ::tk/state   :start
    :count       0})
 

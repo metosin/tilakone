@@ -1,5 +1,19 @@
 # Unreleased  Breaking changes
 
+Changed internal state-machine representation, previously context had states, state, etc under `:tilakone.core/process` 
+key. This superfluous key is now removed, all data is now at top level.
+
+The "top level" was sometimes named as `ctx`, now it's consistently named as `fsm` everywhere.
+    
+Breaking change: `match?` now accepts two arguments, the signal and the `:tilakone.core/on` of the transition, and is
+expected to return truthy if the signal matches the second argument.
+
+Breaking change: Callbacks `guard?` and `action!` now accept three arguments, the FSM, the signal and `guard` or 
+`action`, respectively.  
+
+
+# 0.0.4  (2019/01/19)  Breaking changes
+
 All used keywords are now qualified keywords, using the `tilakone.core` namespace. For example, previously states
 were under key `:states`, from this release onwards the states are under key `:tilakone.core/states`. This is
 expected to make extending tilakone easier. 

@@ -8,38 +8,33 @@
 
 
 (defn apply-signal
-  "Accepts a process and a signal, applies the signal to process and returns
-  (possibly) updated process."
-  [process signal]
-  (let [ctx        {::process process
-                    ::signal  signal}
-        transition (u/get-transition ctx)
-        from-state (-> process ::state)
+  "Accepts a FSM (Finite State Machine) and a signal, applies the signal to the FSM
+  and returns (possibly) updated FSM."
+  [fsm signal]
+  (let [from-state (-> fsm ::state)
+        transition (-> fsm (u/get-transition signal))
         to-state   (-> transition ::to (or from-state))]
-    (-> ctx
-        (u/apply-actions transition)
-        ::process
+    (-> fsm
+        (u/apply-actions signal transition)
         (assoc ::state to-state))))
 
 
 (defn apply-guards
-  "Accepts a process and a signal, resolves all transitions that are possible with given
+  "Accepts a FSM and a signal, resolves all transitions that are possible with given
   signal, returns seq of tuples of `[transitions guard-errors]`, where `guard-errors` are
   errors reported by guards. If none of the guards report any errors for transition then
   `guard-errors` is `nil`."
-  [process signal]
-  (let [ctx {::process process
-             ::signal  signal}]
-    (->> (u/get-transitions ctx)
-         (map (fn [transition]
-                [transition (seq (u/apply-guards ctx transition))])))))
+  [fsm signal]
+  (->> (u/get-transitions fsm signal)
+       (map (fn [transition]
+              [transition (u/apply-guards fsm signal transition)]))))
 
 
 (defn transfers-to
-  "Accepts a process and a signal, returns the name of the state the signal would
-  transfer the process if applied. Returns `nil` if signal is not allowed."
-  [process signal]
-  (->> (apply-guards process signal)
+  "Accepts a FSM and a signal, returns the name of the state the signal would
+  transfer the FSM if applied. Returns `nil` if signal is not allowed."
+  [fsm signal]
+  (->> (apply-guards fsm signal)
        (u/find-first (complement second))
        first
        ::to))
@@ -70,8 +65,8 @@
                  ; Guards and actions used when state transfer is not made:
                  ::stay        {::guards  [Guard]
                                 ::actions [Action]}}]
-     ::match?  (fn [{::keys [process signal on]}] ... true/false) ;      Signal matching predicate
-     ::guard?  (fn [{::keys [process signal guard]}] ... true/false) ;   Guard matching predicate
-     ::action! (fn [{::keys [process signal action]}] ... value)}) ;     Action function
+     ::match?  (fn [signal on] ... true/false) ;   Signal matching predicate
+     ::guard?  (fn [fsm guard] ... true/false) ;   Guard matching predicate
+     ::action! (fn [fsm action] ... value)}) ;     Action function
 
   )

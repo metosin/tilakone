@@ -34,12 +34,12 @@
                   s/Keyword                   s/Any})
 
 
-(defschema FsmProcess {::tk/states                   [State]
-                       ::tk/state                    StateName
-                       (s/optional-key ::tk/match?)  IFn
-                       (s/optional-key ::tk/guard?)  IFn
-                       (s/optional-key ::tk/action!) IFn
-                       s/Keyword                     s/Any})
+(defschema FSM {::tk/states                   [State]
+                ::tk/state                    StateName
+                (s/optional-key ::tk/match?)  IFn
+                (s/optional-key ::tk/guard?)  IFn
+                (s/optional-key ::tk/action!) IFn
+                s/Keyword                     s/Any})
 
 
 (defn validate-states [states]
@@ -69,15 +69,15 @@
   states)
 
 
-(def process-checker (s/checker FsmProcess))
+(def fsm-checker (s/checker FSM))
 
 
-(defn validate-process [process]
-  (when-let [schema-errors (process-checker process)]
-    (throw (ex-info "Process does not match schema"
+(defn validate-fsm [fsm]
+  (when-let [schema-errors (fsm-checker fsm)]
+    (throw (ex-info "FSM does not match schema"
                     {:type          :tilakone.core/error
                      :error         :tilakone.core/schema-error
                      :schema-errors schema-errors
-                     :fsm           process})))
-  (validate-states (::tk/states process))
-  process)
+                     :fsm           fsm})))
+  (validate-states (::tk/states fsm))
+  fsm)
