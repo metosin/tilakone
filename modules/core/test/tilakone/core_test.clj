@@ -53,7 +53,7 @@
                  ::tk/state   :a
                  ::tk/guard?  (constantly true)
                  ::tk/action! (fn [{::tk/keys [action] :as ctx}]
-                                (update-in ctx [::tk/process :trace] conj action))
+                                (update ctx :trace conj action))
                  :trace       []}]
     (fact
       (tk/apply-signal process \a)
@@ -74,7 +74,7 @@
                  ::tk/state   :b
                  ::tk/guard?  (constantly true)
                  ::tk/action! (fn [{::tk/keys [action] :as ctx}]
-                                (update-in ctx [::tk/process :trace] conj action))
+                                (update ctx :trace conj action))
                  :trace       []}]
     (fact
       (tk/apply-signal process \a)

@@ -11,14 +11,12 @@
   "Accepts a process and a signal, applies the signal to process and returns
   (possibly) updated process."
   [process signal]
-  (let [ctx        {::process process
-                    ::signal  signal}
+  (let [ctx        (assoc process ::signal signal)
         transition (u/get-transition ctx)
         from-state (-> process ::state)
         to-state   (-> transition ::to (or from-state))]
     (-> ctx
         (u/apply-actions transition)
-        ::process
         (assoc ::state to-state))))
 
 
@@ -28,8 +26,7 @@
   errors reported by guards. If none of the guards report any errors for transition then
   `guard-errors` is `nil`."
   [process signal]
-  (let [ctx {::process process
-             ::signal  signal}]
+  (let [ctx (assoc process ::signal signal)]
     (->> (u/get-transitions ctx)
          (map (fn [transition]
                 [transition (seq (u/apply-guards ctx transition))])))))

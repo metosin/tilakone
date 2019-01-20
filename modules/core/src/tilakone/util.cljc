@@ -18,14 +18,14 @@
 ;;
 
 
-(defn get-process-state [process state-name]
-  (->> process
+(defn get-process-state [ctx state-name]
+  (->> ctx
        :tilakone.core/states
        (find-first #(-> % :tilakone.core/name (= state-name)))))
 
 
-(defn get-process-current-state [process]
-  (get-process-state process (-> process :tilakone.core/state)))
+(defn get-process-current-state [ctx]
+  (get-process-state ctx (-> ctx :tilakone.core/state)))
 
 
 ;;
@@ -33,17 +33,16 @@
 ;;
 
 (defn- get-transition-fns [fn-type ctx transition]
-  (let [process (-> ctx :tilakone.core/process)
-        from    (-> process :tilakone.core/state)
+  (let [from    (-> ctx :tilakone.core/state)
         to      (-> transition :tilakone.core/to (or from))]
     (if (= from to)
       ; No state change:
       (concat (-> transition fn-type)
-              (-> process (get-process-state from) :tilakone.core/stay fn-type))
+              (-> ctx (get-process-state from) :tilakone.core/stay fn-type))
       ; State change:
-      (concat (-> process (get-process-state from) :tilakone.core/leave fn-type)
+      (concat (-> ctx (get-process-state from) :tilakone.core/leave fn-type)
               (-> transition fn-type)
-              (-> process (get-process-state to) :tilakone.core/enter fn-type)))))
+              (-> ctx (get-process-state to) :tilakone.core/enter fn-type)))))
 
 
 (def ^:private get-transition-guards (partial get-transition-fns :tilakone.core/guards))
@@ -66,7 +65,7 @@
 
 
 (defn apply-guards [ctx transition]
-  (let [try-guard (partial try-guard (-> ctx :tilakone.core/process :tilakone.core/guard?) ctx)]
+  (let [try-guard (partial try-guard (-> ctx  :tilakone.core/guard?) ctx)]
     (->> (get-transition-guards ctx transition)
          (keep try-guard))))
 
@@ -82,9 +81,8 @@
 
 
 (defn get-transitions [ctx]
-  (let [match? (-> ctx :tilakone.core/process :tilakone.core/match? (or default-match?))]
+  (let [match? (-> ctx :tilakone.core/match? (or default-match?))]
     (->> ctx
-         :tilakone.core/process
          (get-process-current-state)
          :tilakone.core/transitions
          (filter (fn [{:tilakone.core/keys [on]}]
@@ -94,7 +92,7 @@
 
 
 (defn- allowed-transition? [ctx transition]
-  (let [reject? (partial try-guard (-> ctx :tilakone.core/process :tilakone.core/guard?) ctx)
+  (let [reject? (partial try-guard (-> ctx :tilakone.core/guard?) ctx)
         allow?  (complement reject?)
         guards  (get-transition-guards ctx transition)]
     (every? allow? guards)))
@@ -102,21 +100,21 @@
 
 (defn- missing-transition! [ctx]
   (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
-                          (-> ctx :tilakone.core/process (get-process-current-state) :tilakone.core/name)
+                          (-> ctx  (get-process-current-state) :tilakone.core/name)
                           (-> ctx :tilakone.core/signal pr-str))
                   {:tilakone.core/type   :tilakone.core/error
                    :tilakone.core/error  :tilakone.core/missing-transition
-                   :tilakone.core/state  (-> ctx :tilakone.core/process (get-process-current-state) :tilakone.core/name)
+                   :tilakone.core/state  (-> ctx  (get-process-current-state) :tilakone.core/name)
                    :tilakone.core/signal (-> ctx :tilakone.core/signal)})))
 
 
 (defn- none-allowed! [ctx]
   (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
-                          (-> ctx :tilakone.core/process (get-process-current-state) :tilakone.core/name)
+                          (-> ctx  (get-process-current-state) :tilakone.core/name)
                           (-> ctx :tilakone.core/signal pr-str))
                   {:tilakone.core/type   :tilakone.core/error
                    :tilakone.core/error  :tilakone.core/rejected-by-guard
-                   :tilakone.core/state  (-> ctx :tilakone.core/process (get-process-current-state))
+                   :tilakone.core/state  (-> ctx  (get-process-current-state))
                    :tilakone.core/signal (-> ctx :tilakone.core/signal)})))
 
 
@@ -134,7 +132,7 @@
 
 
 (defn apply-actions [ctx transition]
-  (let [action! (-> ctx :tilakone.core/process :tilakone.core/action!)
+  (let [action! (-> ctx  :tilakone.core/action!)
         actions (get-transition-actions ctx transition)]
     (reduce (fn [ctx action]
               (->> (assoc ctx :tilakone.core/action action)
