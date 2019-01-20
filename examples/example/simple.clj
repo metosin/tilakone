@@ -5,9 +5,9 @@
 ; Serializable state description:
 
 (def count-ab
-  [{::tk/name    :start
-    :transitions [{::tk/on \a, ::tk/to :found-a}
-                  {::tk/on _}]}
+  [{::tk/name        :start
+    ::tk/transitions [{::tk/on \a, ::tk/to :found-a}
+                      {::tk/on _}]}
    {::tk/name        :found-a
     ::tk/transitions [{::tk/on \a}
                       {::tk/on \b, ::tk/to :start, ::tk/actions [:inc-val]}
@@ -20,13 +20,13 @@
 
 (def count-ab-process
   {::tk/states  count-ab
-   ::tk/action! (fn [{::tk/keys [process action]}]
-                  (case action
-                    :inc-val (-> process :value inc)))
    ::tk/state   :start
+   ::tk/action! (fn [fsm signal action]
+                  (case action
+                    :inc-val (update fsm :value inc)))
    :value       0})
 
-(tks/validate-process count-ab-process)
+(tks/validate-fsm count-ab-process)
 ;=> {::tk/states ...
 
 ; Try to send some signals:
