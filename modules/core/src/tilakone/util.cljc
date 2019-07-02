@@ -136,9 +136,9 @@
 
 
 (defn apply-actions [fsm signal transition]
-  (let [action! (-> fsm :tilakone.core/action!)]
+  (let [action-executor (-> fsm :tilakone.core/action!)]
     (-> (reduce (fn [fsm action]
-                  (action! (assoc fsm :tilakone.core/action action)))
+                  (action-executor (assoc fsm :tilakone.core/action action)))
                 (assoc fsm :tilakone.core/signal signal)
                 (get-transition-actions fsm transition))
         (dissoc :tilakone.core/signal)
