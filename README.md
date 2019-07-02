@@ -17,6 +17,8 @@ Minimalistic finite state machine (FSM) in Clojure.
 
 ## Usage
 
+Tested with Clojure `1.10.0`
+
 All bundled:
 
 ```clj
