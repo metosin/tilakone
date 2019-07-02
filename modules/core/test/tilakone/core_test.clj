@@ -123,20 +123,20 @@
                                    {::tk/guard :->c,, ::tk/allow? false}]]])
 
     (fact "allow :a->a and :a"
-          (tk/apply-guards (with-allow #{:a->a :a}) \a)
-          => [[{:tilakone.core/to :a} [{::tk/guard :a->a, ::tk/allow? true}
-                                       {::tk/guard :a,,,, ::tk/allow? true}]]
-              [{:tilakone.core/to :c} [{::tk/guard :a->,, ::tk/allow? false}
-                                       {::tk/guard :a->c, ::tk/allow? false}
-                                       {::tk/guard :->c,, ::tk/allow? false}]]])
+      (tk/apply-guards (with-allow #{:a->a :a}) \a)
+      => [[{:tilakone.core/to :a} [{::tk/guard :a->a, ::tk/allow? true}
+                                   {::tk/guard :a,,,, ::tk/allow? true}]]
+          [{:tilakone.core/to :c} [{::tk/guard :a->,, ::tk/allow? false}
+                                   {::tk/guard :a->c, ::tk/allow? false}
+                                   {::tk/guard :->c,, ::tk/allow? false}]]])
 
-        (fact "allow :a->a, :a, :a->, :a->c and :->c"
-          (tk/apply-guards (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
-          => [[{:tilakone.core/to :a} [{::tk/guard :a->a, ::tk/allow? true}
-                                       {::tk/guard :a,,,, ::tk/allow? true}]]
-              [{:tilakone.core/to :c} [{::tk/guard :a->,, ::tk/allow? true}
-                                       {::tk/guard :a->c, ::tk/allow? true}
-                                       {::tk/guard :->c,, ::tk/allow? true}]]])))
+    (fact "allow :a->a, :a, :a->, :a->c and :->c"
+      (tk/apply-guards (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
+      => [[{:tilakone.core/to :a} [{::tk/guard :a->a, ::tk/allow? true}
+                                   {::tk/guard :a,,,, ::tk/allow? true}]]
+          [{:tilakone.core/to :c} [{::tk/guard :a->,, ::tk/allow? true}
+                                   {::tk/guard :a->c, ::tk/allow? true}
+                                   {::tk/guard :->c,, ::tk/allow? true}]]])))
 
 
 (deftest transfers-to-test
