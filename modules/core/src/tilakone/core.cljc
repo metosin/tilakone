@@ -21,9 +21,9 @@
 
 (defn apply-guards
   "Accepts a FSM and a signal, resolves all transitions that are possible with given
-  signal, returns seq of tuples of `[transitions guard-results]`, where `guard-results` are
-  results reported by guards. Each result is a map with `:tilakone.core/allow?` (boolean
-  indicating guard verdict), `:tilakone.core/guard` (the guard data from fsm), and
+  signal, returns seq of tuples of `[transition guard-results]`, where `guard-results` is
+  a seq of results reported by guards, each result is a map with `:tilakone.core/allow?`
+  (boolean indicating guard verdict), `:tilakone.core/guard` (the guard data from fsm), and
   `:tilakone.core/result` (the return value of guard, or an exception)."
   [fsm signal]
   (->> (u/get-transitions fsm signal)
