@@ -159,3 +159,42 @@
     (fact "allow :a->a, :a, :a->, :a->c and :->c"
       (tk/transfers-to (with-allow #{:a->a :a :a-> :a->c :->c}) \a)
       => :a)))
+
+
+(deftest state-in-guards-and-actions
+  (let [trace   (atom [])
+        guard?  (fn [{::tk/keys [guard state from-state to-state]}]
+                  (swap! trace conj [guard {:state      state
+                                            :from-state from-state
+                                            :to-state   to-state}])
+                  true)
+        action! (fn [{::tk/keys [action state from-state to-state] :as fsm}]
+                  (swap! trace conj [action {:state      state
+                                             :from-state from-state
+                                             :to-state   to-state}])
+                  fsm)
+        states  [{::tk/name        :a
+                  ::tk/leave       {::tk/guards  [:leave-a?]
+                                    ::tk/actions [:leave-a!]}
+                  ::tk/transitions [{::tk/on      :signal
+                                     ::tk/to      :b
+                                     ::tk/guards  [:transition?]
+                                     ::tk/actions [:transition!]}]}
+
+                 {::tk/name  :b
+                  ::tk/enter {::tk/guards  [:enter-b?]
+                              ::tk/actions [:enter-b!]}}]
+        fsm     {::tk/states  states
+                 ::tk/state   :a
+                 ::tk/guard?  guard?
+                 ::tk/action! action!}
+        fsm'    (tk/apply-signal fsm :signal)]
+    (fact "FSM state is changed to :b"
+      fsm' => {::tk/state :b})
+    (fact "Trace shows guards and actions in the order they were executed, and the states they saw"
+      @trace => [[:leave-a? {:state :a}]
+                 [:transition? {:state :a}]
+                 [:enter-b? {:state :a}]
+                 [:leave-a! {:state :a}]
+                 [:transition! {:state :a}]
+                 [:enter-b! {:state :a}]])))
