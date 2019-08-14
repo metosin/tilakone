@@ -9,21 +9,21 @@
                       {::tk/on _}]}
    {::tk/name        :found-a
     ::tk/transitions [{::tk/on \a}
-                      {::tk/on \b, ::tk/to :start, ::tk/actions [#(update % :count inc)]}
+                      {::tk/on \b, ::tk/to :start, ::tk/actions [inc]}
                       {::tk/on _, ::tk/to :start}]}])
 
 
 (def count-ab-process
   {::tk/states  count-ab
-   ::tk/action! (fn [{::tk/keys [action] :as fsm}] (action fsm))
+   ::tk/action! (fn [{::tk/keys [action]} value] (action value))
    ::tk/state   :start
-   :count       0})
+   ::tk/value   0})
 
 
 (-> count-ab-process
     (tk/apply-signal \a))
 ;=> {::tk/state ::tk/found-a
-;    :count 0
+;    ::tk/value 0
 ;    ...
 
 
@@ -31,7 +31,7 @@
     (tk/apply-signal \a)
     (tk/apply-signal \b))
 ;=> {::tk/state :start
-;    :count 1
+;    ::tk/value 1
 ;    ...
 
 
@@ -39,6 +39,6 @@
         count-ab-process
         "abaaabc")
 ;=> {::tk/state :start
-;    :count 2
+;    ::tk/value 2
 ;    ...
 

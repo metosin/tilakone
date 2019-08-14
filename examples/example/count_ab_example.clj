@@ -16,15 +16,15 @@
 
 (def count-ab
   {::tk/states  count-ab-states
-   ::tk/action! (fn [{::tk/keys [action] :as fsm}]
+   ::tk/action! (fn [{::tk/keys [action]} value]
                   (case action
-                    :inc-val (update fsm :count inc)))
+                    :inc-val (inc value)))
    ::tk/state   :start
-   :count       0})
+   ::tk/value   0})
 
 ; Lets apply same inputs to our FSM:
 
 (->> ["abaaabc" "aaacb" "bbbcab"]
      (map (partial reduce tk/apply-signal count-ab))
-     (map :count))
+     (map ::tk/value))
 ;=> (2 0 1)

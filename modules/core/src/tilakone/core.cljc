@@ -12,12 +12,24 @@
   and returns (possibly) updated FSM."
   [fsm signal]
   (let [from-state (-> fsm ::state)
+        from-value (-> fsm ::value)
         transition (-> fsm (u/get-transition signal))
-        to-state   (-> transition ::to (or from-state))]
-    (-> fsm
-        (u/apply-actions signal transition)
-        (assoc ::state to-state))))
-
+        to-state   (-> transition ::to (or from-state))
+        to-value   (u/apply-actions (assoc fsm ::signal     signal
+                                               ::from-state from-state
+                                               ::transition transition
+                                               ::to-state   to-state)
+                                    from-value)]
+    (cond
+      (u/push-state? to-state) (-> fsm
+                                   (update ::stack conj from-state)
+                                   (assoc ::state (second to-state)
+                                          ::value to-value))
+      (u/pop-state? to-state) (assoc fsm ::state (-> fsm ::stack peek)
+                                         ::stack (-> fsm ::stack pop)
+                                         ::value to-value)
+      :else (assoc fsm ::state to-state
+                       ::value to-value))))
 
 (defn apply-guards
   "Accepts a FSM and a signal, resolves all transitions that are possible with given
@@ -49,16 +61,15 @@
   ;
 
   (def FSM
-    {::state   Any ;                                     Current state
-     ::states  [{::name        Any ;                     State name (can be string, keyword, symbol, any clojure value)
-                 ::desc        Str ;                     Optional state description
-                 ::transitions [{::name    Any ;         Transition name
-                                 ::desc    Str ;         Transition description
-                                 ::to      Any ;         Name of the next state
-                                 ::on      Matcher ;     Data for match?, does the signal match this transition?
-                                 ::guards  [Guard] ;     Data for guard?, is this transition allowed?
-                                 ::actions [Action]}] ;  Actions to be performed on this transition
-                 ; Guards and actions used when state is transferred to this stateP
+    {::states  [{::name        Any ;                      State name (can be string, keyword, symbol, any clojure value)
+                 ::desc        Str ;                      Optional state description
+                 ::transitions [{::name    Any ;          Transition name
+                                 ::desc    Str ;          Transition description
+                                 ::to      Any ;          Name of the next state
+                                 ::on      Matcher ;      Data for match?, does the signal match this transition?
+                                 ::guards  [Guard] ;      Data for guard?, is this transition allowed?
+                                 ::actions [Action]}] ;   Actions to be performed on this transition
+                 ; Guards and actions used when state is transferred to this state:
                  ::enter       {::guards  [Guard]
                                 ::actions [Action]}
                  ; Guards and actions used when state is transferred from this state:
@@ -67,8 +78,13 @@
                  ; Guards and actions used when state transfer is not made:
                  ::stay        {::guards  [Guard]
                                 ::actions [Action]}}]
-     ::match?  (fn [signal on] ... true/false) ;   Signal matching predicate
-     ::guard?  (fn [{:tilakone.core/keys [signal guard] :as fsm}] ... true/false) ;   Guard function
-     ::action! (fn [{:tilakone.core/keys [signal action] :as fsm}] ... fsm)}) ;       Action function
+     ::state   Any ;                                      Current state
+     ::value   Any ;                                      Current application specific value
+     ::stack   [Any] ;                                    Stack of states:
+     ::match?  (fn [signal on] ... true/false) ;          Signal matching predicate
+     ; The first arg to guard? and action! functions is the `fsm`, with the `::signal` and
+     ; current guard or action data.
+     ::guard?  (fn [{:tilakone.core/keys [signal guard] :as fsm} value] ... true/false) ;   Guard function
+     ::action! (fn [{:tilakone.core/keys [signal action] :as fsm} value] ... value)}) ;     Action function
 
   )

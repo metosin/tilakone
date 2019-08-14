@@ -21,10 +21,10 @@
 (def count-ab-process
   {::tk/states  count-ab
    ::tk/state   :start
-   ::tk/action! (fn [{::tk/keys [action] :as fsm}]
+   ::tk/action! (fn [{::tk/keys [action]} value]
                   (case action
-                    :inc-val (update fsm :value inc)))
-   :value       0})
+                    :inc-val (inc value)))
+   ::tk/value   0})
 
 (tks/validate-fsm count-ab-process)
 ;=> {::tk/states ...
@@ -34,20 +34,20 @@
 (-> count-ab-process
     (tk/apply-signal \a))
 ;=> {::tk/state :found-a
-;    :value 0
+;    ::tk/value 0
 ;    ...
 
 (-> count-ab-process
     (tk/apply-signal \a)
     (tk/apply-signal \b))
 ;=> {::tk/state :start
-;    :value 1
+;    ::tk/value 1
 ;    ...
 
 (reduce tk/apply-signal
         count-ab-process
         "abaaabc")
 ;=> {::tk/state :start
-;    :value 2
+;    ::tk/value 2
 ;    ...
 

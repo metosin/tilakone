@@ -36,6 +36,7 @@
 
 (defschema FSM {::tk/states                   [State]
                 ::tk/state                    StateName
+                (s/optional-key ::tk/value)   s/Any
                 (s/optional-key ::tk/match?)  IFn
                 (s/optional-key ::tk/guard?)  IFn
                 (s/optional-key ::tk/action!) IFn

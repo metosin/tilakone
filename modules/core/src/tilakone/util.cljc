@@ -13,6 +13,18 @@
         coll))
 
 
+
+(defn push-state? [v]
+  (and (-> v vector?)
+       (-> v first = :tilakone.core/push-state)))
+
+
+(def pop-state :tilakone.core/pop-state)
+
+
+(def pop-state? (partial = pop-state))
+
+
 ;;
 ;; State:
 ;;
@@ -56,9 +68,8 @@
 (defn- try-guard [fsm guard]
   (try
     (let [guard?   (-> fsm :tilakone.core/guard?)
-          response (-> fsm
-                       (assoc :tilakone.core/guard guard)
-                       (guard?))]
+          response (guard? (-> fsm (assoc :tilakone.core/guard guard))
+                           (-> fsm :tilakone.core/value))]
       {:tilakone.core/allow? (if response true false)
        :tilakone.core/guard  guard
        :tilakone.core/result response})
@@ -135,11 +146,12 @@
 ;;
 
 
-(defn apply-actions [fsm signal transition]
-  (let [action-executor (-> fsm :tilakone.core/action!)]
-    (-> (reduce (fn [fsm action]
-                  (action-executor (assoc fsm :tilakone.core/action action)))
-                (assoc fsm :tilakone.core/signal signal)
-                (get-transition-actions fsm transition))
-        (dissoc :tilakone.core/signal)
-        (dissoc :tilakone.core/action))))
+(defn apply-actions [fsm value]
+  (let [transition      (-> fsm :tilakone.core/transition)
+        action-executor (-> fsm :tilakone.core/action!)
+        actions         (get-transition-actions fsm transition)]
+    (reduce (fn [value action]
+              (action-executor (assoc fsm :tilakone.core/action action)
+                               value))
+            value
+            actions)))

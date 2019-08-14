@@ -29,16 +29,16 @@
 
 
 (def count-ab-process {::tk/states  count-ab
-                       ::tk/action! (fn [{::tk/keys [signal action] :as fsm}]
-                                      (update fsm :trace conj (into [signal] action)))
-                       ::tk/state   :start})
+                       ::tk/state   :start
+                       ::tk/action! (fn [{::tk/keys [signal action]} value]
+                                      (conj value (into [signal] action)))})
 
 
 (deftest actions-test
-  (let [count-ab (assoc count-ab-process :trace [])]
+  (let [count-ab (assoc count-ab-process ::tk/value [])]
     (fact
       (-> (reduce tk/apply-signal count-ab "xxababbax")
-          :trace)
+          ::tk/value)
       => [[\x :action :start :start]
           [\x :stay :start]
           [\x :action :start :start]

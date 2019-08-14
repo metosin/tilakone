@@ -52,46 +52,46 @@
   (let [process {::tk/states  states
                  ::tk/state   :a
                  ::tk/guard?  (constantly true)
-                 ::tk/action! (fn [{::tk/keys [signal action] :as fsm}]
-                                (update fsm :trace conj [signal action]))
-                 :trace       []}]
+                 ::tk/action! (fn [{::tk/keys [signal action]} value]
+                                (conj value [signal action]))
+                 ::tk/value   []}]
     (fact
       (tk/apply-signal process \a)
       => {::tk/state :a
-          :trace     [[\a :a->a]
+          ::tk/value [[\a :a->a]
                       [\a :a]]})
 
     (fact
       (tk/apply-signal process \b)
       => {::tk/state :b
-          :trace     [[\b :a->]
+          ::tk/value [[\b :a->]
                       [\b :a->b]
                       [\b :->b]]})
 
     (fact
       (tk/apply-signal process \x)
       => {::tk/state :c
-          :trace     [[\x :a->]
+          ::tk/value [[\x :a->]
                       [\x :a->c]
                       [\x :->c]]}))
 
   (let [process {::tk/states  states
                  ::tk/state   :b
                  ::tk/guard?  (constantly true)
-                 ::tk/action! (fn [{::tk/keys [signal action] :as fsm}]
-                                (update fsm :trace conj [signal action]))
-                 :trace       []}]
+                 ::tk/action! (fn [{::tk/keys [signal action]} value]
+                                (conj value [signal action]))
+                 ::tk/value   []}]
     (fact
       (tk/apply-signal process \a)
       => {::tk/state :a
-          :trace     [[\a :b->]
+          ::tk/value [[\a :b->]
                       [\a :b->a]
                       [\a :->a]]})
 
     (fact
       (tk/apply-signal process \b)
       => {::tk/state :b
-          :trace     [[\b :b->b]
+          ::tk/value [[\b :b->b]
                       [\b :b]]})
 
     (fact
@@ -103,7 +103,7 @@
   (let [with-allow (fn [allow]
                      {::tk/states states
                       ::tk/state  :a
-                      ::tk/guard? (fn [{::tk/keys [guard]}]
+                      ::tk/guard? (fn [{::tk/keys [guard]} _]
                                     (allow guard))})]
     (fact "don't allow anything, report all transitions with all guards returning `false`"
       (tk/apply-guards (with-allow #{}) \a)
@@ -143,7 +143,7 @@
   (let [with-allow (fn [allow]
                      {::tk/states states
                       ::tk/state  :a
-                      ::tk/guard? (fn [{::tk/keys [guard]}] (allow guard))})]
+                      ::tk/guard? (fn [{::tk/keys [guard]} _] (allow guard))})]
     (fact "don't allow anything, can't transfer anywhere"
       (tk/transfers-to (with-allow #{}) \a)
       => nil)
@@ -163,16 +163,16 @@
 
 (deftest state-in-guards-and-actions
   (let [trace   (atom [])
-        guard?  (fn [{::tk/keys [guard state from-state to-state]}]
+        guard?  (fn [{::tk/keys [guard state from-state to-state]} value]
                   (swap! trace conj [guard {:state      state
                                             :from-state from-state
                                             :to-state   to-state}])
                   true)
-        action! (fn [{::tk/keys [action state from-state to-state] :as fsm}]
+        action! (fn [{::tk/keys [action state from-state to-state]} value]
                   (swap! trace conj [action {:state      state
                                              :from-state from-state
                                              :to-state   to-state}])
-                  fsm)
+                  value)
         states  [{::tk/name        :a
                   ::tk/leave       {::tk/guards  [:leave-a?]
                                     ::tk/actions [:leave-a!]}
@@ -197,4 +197,5 @@
                  [:enter-b? {:state :a}]
                  [:leave-a! {:state :a}]
                  [:transition! {:state :a}]
-                 [:enter-b! {:state :a}]])))
+                 [:enter-b! {:state :a}]])
+    (print @trace)))
