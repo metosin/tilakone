@@ -4,25 +4,25 @@
 ; You do not have use pure data states, you can use functions as guards and actions easily:
 
 (def count-ab
-  [{::tk/name        :start
-    ::tk/transitions [{::tk/on \a, ::tk/to :found-a}
-                      {::tk/on _}]}
-   {::tk/name        :found-a
-    ::tk/transitions [{::tk/on \a}
-                      {::tk/on \b, ::tk/to :start, ::tk/actions [#(update % :count inc)]}
-                      {::tk/on _, ::tk/to :start}]}])
+  [{:name        :start
+    :transitions [{:on \a, :to :found-a}
+                  {:on _}]}
+   {:name        :found-a
+    :transitions [{:on \a}
+                  {:on \b, :to :start, :actions [#(update % :count inc)]}
+                  {:on _, :to :start}]}])
 
 
 (def count-ab-process
-  {::tk/states  count-ab
-   ::tk/action! (fn [fsm signal action] (action fsm))
-   ::tk/state   :start
-   :count       0})
+  {:states  count-ab
+   :action! (fn [fsm signal action] (action fsm))
+   :state   :start
+   :count   0})
 
 
 (-> count-ab-process
     (tk/apply-signal \a))
-;=> {::tk/state ::tk/found-a
+;=> {:state :found-a
 ;    :count 0
 ;    ...
 
@@ -30,7 +30,7 @@
 (-> count-ab-process
     (tk/apply-signal \a)
     (tk/apply-signal \b))
-;=> {::tk/state :start
+;=> {:state :start
 ;    :count 1
 ;    ...
 
@@ -38,7 +38,7 @@
 (reduce tk/apply-signal
         count-ab-process
         "abaaabc")
-;=> {::tk/state :start
+;=> {:state :start
 ;    :count 2
 ;    ...
 

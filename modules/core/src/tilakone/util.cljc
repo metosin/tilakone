@@ -20,12 +20,12 @@
 
 (defn state [fsm state-name]
   (->> fsm
-       :tilakone.core/states
-       (find-first #(-> % :tilakone.core/name (= state-name)))))
+       :states
+       (find-first #(-> % :name (= state-name)))))
 
 
 (defn current-state [fsm]
-  (state fsm (-> fsm :tilakone.core/state)))
+  (state fsm (-> fsm :state)))
 
 
 ;;
@@ -33,20 +33,20 @@
 ;;
 
 (defn- get-transition-fns [fn-type fsm transition]
-  (let [from (-> fsm :tilakone.core/state)
-        to   (-> transition :tilakone.core/to (or from))]
+  (let [from (-> fsm :state)
+        to   (-> transition :to (or from))]
     (if (= from to)
       ; No state change:
       (concat (-> transition fn-type)
-              (-> fsm (state from) :tilakone.core/stay fn-type))
+              (-> fsm (state from) :stay fn-type))
       ; State change:
-      (concat (-> fsm (state from) :tilakone.core/leave fn-type)
+      (concat (-> fsm (state from) :leave fn-type)
               (-> transition fn-type)
-              (-> fsm (state to) :tilakone.core/enter fn-type)))))
+              (-> fsm (state to) :enter fn-type)))))
 
 
-(def ^:private get-transition-guards (partial get-transition-fns :tilakone.core/guards))
-(def ^:private get-transition-actions (partial get-transition-fns :tilakone.core/actions))
+(def ^:private get-transition-guards (partial get-transition-fns :guards))
+(def ^:private get-transition-actions (partial get-transition-fns :actions))
 
 ;;
 ;; Guards:
@@ -55,14 +55,14 @@
 
 (defn- try-guard [fsm signal guard]
   (try
-    (let [guard?   (-> fsm :tilakone.core/guard?)
+    (let [guard?   (-> fsm :guard?)
           response (guard? fsm signal guard)]
       (when-not response
-        {:tilakone.core/guard  guard
-         :tilakone.core/result response}))
+        {:guard  guard
+         :result response}))
     (catch #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) e
-      {:tilakone.core/guard  guard
-       :tilakone.core/result e})))
+      {:guard  guard
+       :result e})))
 
 
 (defn apply-guards [fsm signal transition]
@@ -81,12 +81,12 @@
 
 
 (defn get-transitions [fsm signal]
-  (let [match? (-> fsm :tilakone.core/match? (or default-match?))]
+  (let [match? (-> fsm :match? (or default-match?))]
     (->> fsm
          (current-state)
-         :tilakone.core/transitions
-         (filter (fn [{:tilakone.core/keys [on]}]
-                   (or (= on :tilakone.core/_)
+         :transitions
+         (filter (fn [{:keys [on]}]
+                   (or (= on :_)
                        (match? signal on))))
          (seq))))
 
@@ -100,22 +100,22 @@
 
 (defn- missing-transition! [fsm signal]
   (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
-                          (-> fsm (current-state) :tilakone.core/name)
+                          (-> fsm (current-state) :name)
                           (-> signal pr-str))
-                  {:tilakone.core/type   :tilakone.core/error
-                   :tilakone.core/error  :tilakone.core/missing-transition
-                   :tilakone.core/state  (-> fsm (current-state) :tilakone.core/name)
-                   :tilakone.core/signal signal})))
+                  {:type   :error
+                   :error  :missing-transition
+                   :state  (-> fsm (current-state) :name)
+                   :signal signal})))
 
 
 (defn- none-allowed! [fsm signal]
   (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
-                          (-> fsm (current-state) :tilakone.core/name)
+                          (-> fsm (current-state) :name)
                           (-> signal pr-str))
-                  {:tilakone.core/type   :tilakone.core/error
-                   :tilakone.core/error  :tilakone.core/rejected-by-guard
-                   :tilakone.core/state  (-> fsm (current-state))
-                   :tilakone.core/signal signal})))
+                  {:type   :error
+                   :error  :rejected-by-guard
+                   :state  (-> fsm (current-state))
+                   :signal signal})))
 
 
 (defn get-transition [fsm signal]
@@ -132,7 +132,7 @@
 
 
 (defn apply-actions [fsm signal transition]
-  (let [action! (-> fsm :tilakone.core/action!)]
+  (let [action! (-> fsm :action!)]
     (reduce (fn [fsm action]
               (action! fsm signal action))
             fsm

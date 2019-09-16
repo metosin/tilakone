@@ -29,18 +29,27 @@
 ;
 
 (def light-machine
-  {::tk/states [{::tk/name        "green"
-                 ::tk/transitions [{::tk/on "TIMER"
-                                    ::tk/to "yellow"}]}
-                {::tk/name        "yellow"
-                 ::tk/transitions [{::tk/on "TIMER"
-                                    ::tk/to "red"}]}
-                {::tk/name        "red"
-                 ::tk/transitions [{::tk/on "TIMER"
-                                    ::tk/to "green"}]}]
-   ::tk/state  "green"})
+  {:state  "green"
+   :states [{:name        "green"
+             :transitions [{:on "TIMER"
+                            :to "yellow"}]}
+            {:name        "yellow"
+             :transitions [{:on "TIMER"
+                            :to "red"}]}
+            {:name        "red"
+             :transitions [{:on "TIMER"
+                            :to "green"}]}]})
+
+; const currentState = 'green';
+; const nextState = lightMachine.transition(currentState, 'TIMER').value;
+; // => 'yellow'
+
+(-> light-machine (tk/apply-signal "TIMER") :state)
+;=> "yellow"
+
+; The `tk/apply-state` is a reducer, so you can apply it like this:
 
 (->> (repeat 5 "TIMER")
      (reduce tk/apply-signal light-machine)
-     ::tk/state)
+     :state)
 ;=> "red"

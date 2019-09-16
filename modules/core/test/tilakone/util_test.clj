@@ -5,7 +5,7 @@
 
 
 ; can't require tilakone.core, that would be circular dependency:
-(def _ :tilakone.core/_)
+(def _ :_)
 
 
 ;;
@@ -30,20 +30,20 @@
 
 (deftest get-state-test
   (fact
-    (u/state {:tilakone.core/states [{:tilakone.core/name :foo}
-                                     {:tilakone.core/name :bar}
-                                     {:tilakone.core/name :boz}]}
+    (u/state {:states [{:name :foo}
+                       {:name :bar}
+                       {:name :boz}]}
              :bar)
-    => {:tilakone.core/name :bar}))
+    => {:name :bar}))
 
 
 (deftest get-state-test
   (fact
-    (u/current-state {:tilakone.core/states [{:tilakone.core/name :foo}
-                                             {:tilakone.core/name :bar}
-                                             {:tilakone.core/name :boz}]
-                      :tilakone.core/state  :bar})
-    => {:tilakone.core/name :bar}))
+    (u/current-state {:states [{:name :foo}
+                               {:name :bar}
+                               {:name :boz}]
+                      :state  :bar})
+    => {:name :bar}))
 
 
 ;;
@@ -51,21 +51,21 @@
 ;;
 
 
-(def states [{:tilakone.core/name        :a
-              :tilakone.core/enter       {:tilakone.core/guards [:->a], :tilakone.core/actions [:->a]}
-              :tilakone.core/stay        {:tilakone.core/guards [:a], :tilakone.core/actions [:a]}
-              :tilakone.core/leave       {:tilakone.core/guards [:a->], :tilakone.core/actions [:a->]}
-              :tilakone.core/transitions [{:tilakone.core/on \a, :tilakone.core/to :a, :tilakone.core/guards [:a->a], :tilakone.core/actions [:a->a]}
-                                          {:tilakone.core/on \b, :tilakone.core/to :b, :tilakone.core/guards [:a->b], :tilakone.core/actions [:a->b]}
-                                          {:tilakone.core/on _,, :tilakone.core/to :c, :tilakone.core/guards [:a->c], :tilakone.core/actions [:a->c]}]}
-             {:tilakone.core/name        :b
-              :tilakone.core/enter       {:tilakone.core/guards [:->b], :tilakone.core/actions [:->b]}
-              :tilakone.core/stay        {:tilakone.core/guards [:b], :tilakone.core/actions [:b]}
-              :tilakone.core/leave       {:tilakone.core/guards [:b->], :tilakone.core/actions [:b->]}
-              :tilakone.core/transitions [{:tilakone.core/on \a, :tilakone.core/to :a, :tilakone.core/guards [:b->a], :tilakone.core/actions [:b->a]}
-                                          {:tilakone.core/on \b, :tilakone.core/to :b, :tilakone.core/guards [:b->b], :tilakone.core/actions [:b->b]}]}
-             {:tilakone.core/name  :c
-              :tilakone.core/enter {:tilakone.core/guards [:->c], :tilakone.core/actions [:->c]}}])
+(def states [{:name        :a
+              :enter       {:guards [:->a], :actions [:->a]}
+              :stay        {:guards [:a], :actions [:a]}
+              :leave       {:guards [:a->], :actions [:a->]}
+              :transitions [{:on \a, :to :a, :guards [:a->a], :actions [:a->a]}
+                            {:on \b, :to :b, :guards [:a->b], :actions [:a->b]}
+                            {:on _,, :to :c, :guards [:a->c], :actions [:a->c]}]}
+             {:name        :b
+              :enter       {:guards [:->b], :actions [:->b]}
+              :stay        {:guards [:b], :actions [:b]}
+              :leave       {:guards [:b->], :actions [:b->]}
+              :transitions [{:on \a, :to :a, :guards [:b->a], :actions [:b->a]}
+                            {:on \b, :to :b, :guards [:b->b], :actions [:b->b]}]}
+             {:name  :c
+              :enter {:guards [:->c], :actions [:->c]}}])
 
 
 ;;
@@ -74,21 +74,21 @@
 
 
 (deftest apply-guards!-test
-  (let [fsm    {:tilakone.core/states states
-                :tilakone.core/state  :a
-                :tilakone.core/guard? (fn [fsm signal guard]
-                                        false)}]
+  (let [fsm {:states states
+             :state  :a
+             :guard? (fn [fsm signal guard]
+                       false)}]
 
     (fact "stay in :a"
-      (u/apply-guards fsm :signal {:tilakone.core/to :a, :tilakone.core/guards [:a->a]})
-      => [{:tilakone.core/guard :a->a, :tilakone.core/result false}
-          {:tilakone.core/guard :a, :tilakone.core/result false}])
+      (u/apply-guards fsm :signal {:to :a, :guards [:a->a]})
+      => [{:guard :a->a, :result false}
+          {:guard :a, :result false}])
 
     (fact "to :b"
-      (u/apply-guards fsm :signal {:tilakone.core/to :b, :tilakone.core/guards [:a->b]})
-      => [{:tilakone.core/guard :a->}
-          {:tilakone.core/guard :a->b}
-          {:tilakone.core/guard :->b}])))
+      (u/apply-guards fsm :signal {:to :b, :guards [:a->b]})
+      => [{:guard :a->}
+          {:guard :a->b}
+          {:guard :->b}])))
 
 
 ;;
@@ -100,35 +100,35 @@
 
 
 (deftest get-transition-guards-test
-  (let [fsm {:tilakone.core/states states
-             :tilakone.core/state  :a}]
-    (fact (get-transition-guards fsm {:tilakone.core/to :a, :tilakone.core/guards [:a->a]}) => [:a->a :a])
-    (fact (get-transition-guards fsm {:tilakone.core/to :b, :tilakone.core/guards [:a->b]}) => [:a-> :a->b :->b])
-    (fact (get-transition-guards fsm {:tilakone.core/to :c, :tilakone.core/guards [:a->c]}) => [:a-> :a->c :->c])))
+  (let [fsm {:states states
+             :state  :a}]
+    (fact (get-transition-guards fsm {:to :a, :guards [:a->a]}) => [:a->a :a])
+    (fact (get-transition-guards fsm {:to :b, :guards [:a->b]}) => [:a-> :a->b :->b])
+    (fact (get-transition-guards fsm {:to :c, :guards [:a->c]}) => [:a-> :a->c :->c])))
 
 
 (deftest get-transition-test
-  (let [fsm        {:tilakone.core/states states
-                    :tilakone.core/state  :a}
+  (let [fsm        {:states states
+                    :state  :a}
         with-allow (fn [ctx allow]
-                     (assoc ctx :tilakone.core/guard?
+                     (assoc ctx :guard?
                                 (fn [_ _ guard]
                                   (allow guard))))]
 
     (testing "with signal \\a, possible transitions are to :a and to :c"
-      (fact (u/get-transitions fsm \a) => [{:tilakone.core/to :a}, {:tilakone.core/to :c}]))
+      (fact (u/get-transitions fsm \a) => [{:to :a}, {:to :c}]))
 
     (testing "allow stay in a (:a->a and :a) and to c (a->, a->c and ->c), first is to :a"
       (let [ctx (with-allow fsm #{:a->a :a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx \a) => {:tilakone.core/to :a})))
+        (fact (u/get-transition ctx \a) => {:to :a})))
 
     (testing "disallowing just :a->a (stay in :a) causes selection to be :c"
       (let [ctx (with-allow fsm #{:a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx \a) => {:tilakone.core/to :c})))
+        (fact (u/get-transition ctx \a) => {:to :c})))
 
     (testing "disallowing just :a (stay in :a) causes selection to be :c"
       (let [ctx (with-allow fsm #{:a->a :a-> :a->c :->c})]
-        (fact (u/get-transition ctx \a) => {:tilakone.core/to :c})))
+        (fact (u/get-transition ctx \a) => {:to :c})))
 
     (testing "disallowing also :->c (enter :c) causes none to be available"
       (let [ctx (with-allow fsm #{:a->a :a-> :a->c})]
@@ -136,8 +136,8 @@
 
     (testing "in state :b signal \\x is not allowed"
       (let [ctx (-> fsm
-                    (assoc :tilakone.core/state :b)
-                    (assoc :tilakone.core/signal \x))]
+                    (assoc :state :b)
+                    (assoc :signal \x))]
         (fact (u/get-transition ctx \x) =throws=> (throws-ex-info "missing transition from state [:b] with signal [\\x]"))))))
 
 ;;
@@ -146,18 +146,18 @@
 
 
 (deftest apply-actions-test
-  (let [fsm {:tilakone.core/states  states
-             :tilakone.core/state   :a
-             :tilakone.core/action! (fn [fsm signal action]
-                                      (update fsm :trace conj [signal action]))
-             :trace                 []}]
+  (let [fsm {:states  states
+             :state   :a
+             :action! (fn [fsm signal action]
+                        (update fsm :trace conj [signal action]))
+             :trace   []}]
     (fact
-      (u/apply-actions fsm :signal {:tilakone.core/to :a, :tilakone.core/actions [:a->a]})
+      (u/apply-actions fsm :signal {:to :a, :actions [:a->a]})
       => {:trace [[:signal :a->a]
                   [:signal :a]]})
 
     (fact
-      (u/apply-actions fsm :signal {:tilakone.core/to :b, :tilakone.core/actions [:a->b]})
+      (u/apply-actions fsm :signal {:to :b, :actions [:a->b]})
       => {:trace [[:signal :a->]
                   [:signal :a->b]
                   [:signal :->b]]})))

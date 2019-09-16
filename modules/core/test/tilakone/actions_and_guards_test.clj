@@ -5,33 +5,33 @@
 
 
 (def count-ab
-  [{::tk/name        :start
-    ::tk/transitions [{::tk/on      \a
-                       ::tk/to      :found-a
-                       ::tk/actions [[:action :start :found-a]]}
-                      {::tk/on      _
-                       ::tk/actions [[:action :start :start]]}]
-    ::tk/enter       {::tk/actions [[:enter :start]]}
-    ::tk/leave       {::tk/actions [[:leave :start]]}
-    ::tk/stay        {::tk/actions [[:stay :start]]}}
+  [{:name        :start
+    :transitions [{:on      \a
+                   :to      :found-a
+                   :actions [[:action :start :found-a]]}
+                  {:on      _
+                   :actions [[:action :start :start]]}]
+    :enter       {:actions [[:enter :start]]}
+    :leave       {:actions [[:leave :start]]}
+    :stay        {:actions [[:stay :start]]}}
 
-   {::tk/name        :found-a
-    ::tk/transitions [{::tk/on      \a
-                       ::tk/actions [[:action :found-a :found-a]]}
-                      {::tk/on      \b
-                       ::tk/actions [[:action :found-a :found-a :via-guard-1]]}
-                      {::tk/on      _
-                       ::tk/to      :start
-                       ::tk/actions [[:action :found-a :start :via-b-_]]}]
-    ::tk/enter       {::tk/actions [[:enter :found-a]]}
-    ::tk/leave       {::tk/actions [[:leave :found-a]]}
-    ::tk/stay        {::tk/actions [[:stay :found-a]]}}])
+   {:name        :found-a
+    :transitions [{:on      \a
+                   :actions [[:action :found-a :found-a]]}
+                  {:on      \b
+                   :actions [[:action :found-a :found-a :via-guard-1]]}
+                  {:on      _
+                   :to      :start
+                   :actions [[:action :found-a :start :via-b-_]]}]
+    :enter       {:actions [[:enter :found-a]]}
+    :leave       {:actions [[:leave :found-a]]}
+    :stay        {:actions [[:stay :found-a]]}}])
 
 
-(def count-ab-process {::tk/states  count-ab
-                       ::tk/action! (fn [fsm signal action]
-                                      (update fsm :trace conj (into [signal] action)))
-                       ::tk/state   :start})
+(def count-ab-process {:states  count-ab
+                       :action! (fn [fsm signal action]
+                                  (update fsm :trace conj (into [signal] action)))
+                       :state   :start})
 
 
 (deftest actions-test
