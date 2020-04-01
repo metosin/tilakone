@@ -1,4 +1,4 @@
-(defproject metosin/tilakone.root "0.0.0"
+(defproject helpshift/tilakone.root "0.0.1-SNAPSHOT"
   :description "Minimal finite state machine library"
   :dependencies []
   :source-paths ["dev"
@@ -9,7 +9,7 @@
   :test-paths ["modules/core/test"
                "modules/schema/test"
                "modules/graph/test"]
-  :profiles {:dev  {:dependencies [[org.clojure/clojure "1.10.0"]
+  :profiles {:dev  {:dependencies [[org.clojure/clojure "1.8.0"]
                                    ; Dev workflow:
                                    [org.clojure/tools.namespace "0.2.11"]
                                    ; Module deps:

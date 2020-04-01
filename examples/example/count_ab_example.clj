@@ -6,11 +6,11 @@
 (def count-ab-states
   [{::tk/name        :start
     ::tk/transitions [{::tk/on \a, ::tk/to :found-a}
-                      {::tk/on _}]}
+                      {::tk/on ::tk/_}]}
    {::tk/name        :found-a
     ::tk/transitions [{::tk/on \a}
                       {::tk/on \b, ::tk/to :start, ::tk/actions [:inc-val]}
-                      {::tk/on _, ::tk/to :start}]}])
+                      {::tk/on ::tk/_, ::tk/to :start}]}])
 
 ; FSM has states, a function to execute actions, and current state and value:
 

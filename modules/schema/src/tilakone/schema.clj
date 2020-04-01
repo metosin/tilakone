@@ -49,7 +49,7 @@
         errors       (mapcat (fn [state]
                                (->> state
                                     ::tk/transitions
-                                    (remove (fn [{::tk/keys [to]}]
+                                    (remove (fn [{:keys [::tk/to]}]
                                               (or (nil? to)
                                                   (known-state? to))))
                                     (map (fn [transition]
