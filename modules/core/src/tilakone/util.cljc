@@ -1,5 +1,6 @@
-(ns tilakone.util)
-
+(ns tilakone.util
+  #?(:cljs (:require [goog.string.format]
+                     [goog.string :refer [format]])))
 
 ;;
 ;; Generic utils:

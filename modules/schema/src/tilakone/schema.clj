@@ -1,7 +1,9 @@
 (ns tilakone.schema
   (:require [clojure.string :as str]
             [schema.core :as s :refer [defschema]]
-            [tilakone.core :as tk])
+            [tilakone.core :as tk]
+            #?@(:cljs [[goog.string.format]
+                       [goog.string :refer [format]]]))
   (:import (clojure.lang IFn)))
 
 

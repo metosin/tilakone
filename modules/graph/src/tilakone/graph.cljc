@@ -1,6 +1,8 @@
 (ns tilakone.graph
   (:require [dorothy.core :as dot]
-            [dorothy.jvm :as v]))
+            [dorothy.jvm :as v]
+            #?@(:cljs [[goog.string.format]
+                       [goog.string :refer [format]]])))
 
 (defn transition->name [{:keys [name on]}]
   (format "[%s] %s"
