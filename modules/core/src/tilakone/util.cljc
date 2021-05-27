@@ -1,4 +1,7 @@
-(ns tilakone.util)
+(ns tilakone.util
+    #?@(:cljs
+        [(:require [goog.string :as gstring]
+                   [goog.string.format])]))
 
 
 ;;
@@ -103,9 +106,12 @@
 
 
 (defn- missing-transition! [fsm signal]
-  (throw (ex-info (format "missing transition from state [%s] with signal [%s]"
-                          (-> fsm (current-state) :tilakone.core/name)
-                          (-> signal pr-str))
+  (throw (ex-info #?(:clj  (format "missing transition from state [%s] with signal [%s]"
+                                  (-> fsm (current-state) :tilakone.core/name)
+                                  (-> signal pr-str))
+                     :cljs (gstring/format "missing transition from state [%s] with signal [%s]"
+                                   (-> fsm (current-state) :tilakone.core/name)
+                                   (-> signal pr-str)))
                   {:tilakone.core/type   :tilakone.core/error
                    :tilakone.core/error  :tilakone.core/missing-transition
                    :tilakone.core/state  (-> fsm (current-state) :tilakone.core/name)
@@ -113,9 +119,12 @@
 
 
 (defn- none-allowed! [fsm signal]
-  (throw (ex-info (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
-                          (-> fsm (current-state) :tilakone.core/name)
-                          (-> signal pr-str))
+  (throw (ex-info #?(:clj  (format "transition from state [%s] with signal [%s] forbidden by guard(s)"
+                                  (-> fsm (current-state) :tilakone.core/name)
+                                  (-> signal pr-str))
+                     :cljs (gstring/format "transition from state [%s] with signal [%s] forbidden by guard(s)"
+                                   (-> fsm (current-state) :tilakone.core/name)
+                                   (-> signal pr-str)))
                   {:tilakone.core/type   :tilakone.core/error
                    :tilakone.core/error  :tilakone.core/rejected-by-guard
                    :tilakone.core/state  (-> fsm (current-state))
