@@ -85,7 +85,7 @@ Here's the same example with _tilakone_:
   {::tk/states  count-ab-states
    ::tk/action! (fn [{::tk/keys [action] :as fsm}]
                   (case action
-                    :inc-val (update fsm :count inc)))
+                    :inc-val (update-in fsm [::tk/process :count] inc)))
    ::tk/state   :start
    :count       0})
 
