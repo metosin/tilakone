@@ -2,6 +2,8 @@
 
 Minimalistic finite state machine (FSM) in Clojure.
 
+Status: [Deprecated](https://github.com/topics/metosin-deprecated).
+
 > **Tilakone (_eng._ State machine)**
 > 
 > Noun
